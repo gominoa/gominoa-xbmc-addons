@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.audio.pandoraslim"
+    name="Pandora Slim" 
+    version="0.1.0"
+    provider-name="gominoa">
+    <requires>
+        <import addon="xbmc.python" version="2.1.0"/>
+    </requires>
+    <extension point="xbmc.python.pluginsource" library="default.py">
+        <provides>audio</provides>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+	<summary lang="en">Pandora Internet Radio (Player Only)</summary>
+	<description lang="en">Pandora Internet Radio (Player Only)</description>
+	<disclaimer lang="en">Ain't my fault</disclaimer>
+	<language></language>
+	<platform>all</platform>
+	<license>GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007</license>
+	<forum></forum>
+	<website></website>
+	<email></email>
+	<source>https://github.com/gominoa/gominoa-xbmc-addons</source>
+    </extension>
+</addon>
