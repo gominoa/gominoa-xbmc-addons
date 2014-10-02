@@ -26,7 +26,11 @@ def panAuth():
     name = _settings.getSetting('username')
     word = _settings.getSetting('password')
     qual = ('lowQuality', 'mediumQuality', 'highQuality')[int(_settings.getSetting('quality'))]
-    clid = pithos.pandora.data.default_client_id
+
+    if _settings.getSetting('pandoraone') == 'true':
+        clid = pithos.pandora.data.default_one_client_id
+    else:
+        clid = pithos.pandora.data.default_client_id
 
     try:
         _pandora.connect(pithos.pandora.data.client_keys[clid], name, word)
@@ -45,7 +49,17 @@ def panLogin():
 
 
 def panDirectory():
-    for station in _pandora.stations:
+    station = _pandora.stations.pop(0)								# Quickmix
+    li = xbmcgui.ListItem(station.name, station.id)
+    li.setProperty('IsPlayable', 'true')
+    xbmcplugin.addDirectoryItem(_handle, _base + '?station=' + station.id, li)
+
+    sort = _settings.getSetting('sort')
+    if   sort == '0':	stations = _pandora.stations						# Normal
+    elif sort == '2':	stations = _pandora.stations[::-1]					# Reverse
+    else:		stations = sorted(_pandora.stations, key=lambda station: station.name)	# A-Z
+
+    for station in stations:
         li = xbmcgui.ListItem(station.name, station.id)
         li.setProperty('IsPlayable', 'true')
         xbmcplugin.addDirectoryItem(_handle, _base + '?station=' + station.id, li)
