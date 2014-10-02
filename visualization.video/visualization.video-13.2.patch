@@ -16,7 +16,7 @@ diff -ruN xbmc-13.2-Gotham.orig/Makefile.in xbmc-13.2-Gotham/Makefile.in
  	lib/addons/library.xbmc.codec \
 diff -ruN xbmc-13.2-Gotham.orig/addons/visualization.video/addon.xml xbmc-13.2-Gotham/addons/visualization.video/addon.xml
 --- xbmc-13.2-Gotham.orig/addons/visualization.video/addon.xml	1969-12-31 19:00:00.000000000 -0500
-+++ xbmc-13.2-Gotham/addons/visualization.video/addon.xml	2014-10-01 15:01:29.972482624 -0400
++++ xbmc-13.2-Gotham/addons/visualization.video/addon.xml	2014-10-02 01:24:03.361889678 -0400
 @@ -0,0 +1,22 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<addon id="visualization.video"
@@ -34,7 +34,7 @@ diff -ruN xbmc-13.2-Gotham.orig/addons/visualization.video/addon.xml xbmc-13.2-G
 +		<language></language>
 +		<platform>all</platform>
 +		<license>GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007</license>
-+		<forum></forum>
++		<forum>http://forum.xbmc.org/showthread.php?tid=205584</forum>
 +		<website></website>
 +		<email></email>
 +		<source>https://github.com/gominoa/gominoa-xbmc-addons</source>
@@ -42,7 +42,7 @@ diff -ruN xbmc-13.2-Gotham.orig/addons/visualization.video/addon.xml xbmc-13.2-G
 +</addon>
 diff -ruN xbmc-13.2-Gotham.orig/addons/visualization.video/resources/settings.xml xbmc-13.2-Gotham/addons/visualization.video/resources/settings.xml
 --- xbmc-13.2-Gotham.orig/addons/visualization.video/resources/settings.xml	1969-12-31 19:00:00.000000000 -0500
-+++ xbmc-13.2-Gotham/addons/visualization.video/resources/settings.xml	2014-10-01 16:32:44.857864474 -0400
++++ xbmc-13.2-Gotham/addons/visualization.video/resources/settings.xml	2014-10-01 16:32:15.834838857 -0400
 @@ -0,0 +1,4 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<settings>
@@ -113,7 +113,7 @@ diff -ruN xbmc-13.2-Gotham.orig/configure.in xbmc-13.2-Gotham/configure.in
      lib/addons/library.xbmc.addon/Makefile \
 diff -ruN xbmc-13.2-Gotham.orig/xbmc/visualizations/video/Makefile.in xbmc-13.2-Gotham/xbmc/visualizations/video/Makefile.in
 --- xbmc-13.2-Gotham.orig/xbmc/visualizations/video/Makefile.in	1969-12-31 19:00:00.000000000 -0500
-+++ xbmc-13.2-Gotham/xbmc/visualizations/video/Makefile.in	2014-10-01 15:15:53.634106512 -0400
++++ xbmc-13.2-Gotham/xbmc/visualizations/video/Makefile.in	2014-10-01 15:15:18.786678879 -0400
 @@ -0,0 +1,21 @@
 +ARCH=@ARCH@
 +CXXFLAGS=-fPIC
@@ -138,7 +138,7 @@ diff -ruN xbmc-13.2-Gotham.orig/xbmc/visualizations/video/Makefile.in xbmc-13.2-
 +include @abs_top_srcdir@/Makefile.include
 diff -ruN xbmc-13.2-Gotham.orig/xbmc/visualizations/video/video.cpp xbmc-13.2-Gotham/xbmc/visualizations/video/video.cpp
 --- xbmc-13.2-Gotham.orig/xbmc/visualizations/video/video.cpp	1969-12-31 19:00:00.000000000 -0500
-+++ xbmc-13.2-Gotham/xbmc/visualizations/video/video.cpp	2014-10-01 16:31:38.963617505 -0400
++++ xbmc-13.2-Gotham/xbmc/visualizations/video/video.cpp	2014-10-01 16:31:24.687080583 -0400
 @@ -0,0 +1,227 @@
 +/*
 + *      Copyright (C) 2005-2013 Team XBMC
