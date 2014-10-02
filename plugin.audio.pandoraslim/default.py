@@ -69,7 +69,12 @@ def panDirectory():
 
 def panFill():
     global _track
-    songs = _station.get_playlist()
+
+    try:
+        songs = _station.get_playlist()
+    except PandoraError as e:
+        xbmcgui.Dialog().ok(_name, e.message, '', e.submsg)
+        exit()
 
     for song in songs:
         li = xbmcgui.ListItem(_station.name)
@@ -92,7 +97,7 @@ def panFill():
 def panCheck():
     change = False
 
-    if (_playlist.size() - _playlist.getposition()) <= 2:
+    if (_playlist.size() - _playlist.getposition()) <= 1:
         panFill()
         change = True
 
