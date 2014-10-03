@@ -1,7 +1,7 @@
 import time, urlparse
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin
 import pithos.pandora.data
-from pithos.pandora.pandora import Pandora, PandoraError
+from pithos.pandora.pandora import *
 
 
 
