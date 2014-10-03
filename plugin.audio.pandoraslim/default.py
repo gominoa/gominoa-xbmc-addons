@@ -72,7 +72,8 @@ def panFill():
 
     try:
         songs = _station.get_playlist()
-    except PandoraError as e:
+    except PandoraTimeout, PandoraNetError: pass
+    except PandoraAuthTokenInvalid, PandoraAPIVersionError, PandoraError as e:
         xbmcgui.Dialog().ok(_name, e.message, '', e.submsg)
         exit()
 
