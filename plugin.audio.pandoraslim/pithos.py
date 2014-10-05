@@ -311,13 +311,13 @@ class Song(object):
     def __init__(self, pandora, d):
         self.pandora = pandora
 
-        self.title = d['songName'].decode("utf-8")
-        self.album = d['albumName'].decode("utf-8")
-        self.artist = d['artistName'].decode("utf-8")
+        self.title = d['songName'] #.decode("utf-8")
+        self.album = d['albumName'] #.decode("utf-8")
+        self.artist = d['artistName'] #.decode("utf-8")
         self.artUrl = d['albumArtUrl']
         self.rating = '5' if d['songRating'] == 1 else None #RATE_NONE # banned songs won't play, so we don't care about them
 
-        self.songId = d['songIdentity'].decode("utf-8")
+        self.songId = d['songIdentity'] #.decode("utf-8")
         self.stationId = d['stationId']
         self.audioUrlMap = d['audioUrlMap']
 

@@ -64,6 +64,7 @@ def panDirectory():
 
 
 def panSave(song, path):
+    if _settings.getSetting('save') != 'true': return
     xbmc.log("%s.Save (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
     
     lib = xbmc.translatePath(_settings.getSetting('lib'))
@@ -92,7 +93,8 @@ def panAdd(song, path):
 
     _playlist.add(path, li)
     _track += 1
-    _play = _frsh = True
+    _play = True
+    _frsh = True
 
 
 def panFetch(song):
@@ -102,7 +104,7 @@ def panFetch(song):
     path = "%s/%s.m4a" % (_m4a, song.songId)
     if os.path.isfile(path):
         xbmc.log("%s.Fetch DUP (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
-        pandAdd(song, path)
+        panAdd(song, path)
         _pend -= 1
         return
 
@@ -157,8 +159,7 @@ def panFetch(song):
             panAdd(song, path)
     
     _pend -= 1
-    if _settings.getSetting('save') == 'true':
-        panSave(song, path)
+    panSave(song, path)
 
 
 def panFill():
@@ -226,10 +227,11 @@ if _station is not None:
     if not os.path.isdir(_m4a): os.makedirs(_m4a)
     panPlay()
     while _playlist.getposition() >= 0:
-        if _playlist[_playlist.getposition()].getProperty(_plugin) == _stamp:
-#            xbmc.log('pan still here ' + _stamp + ' - ' + str(time.time()))
+        xbmc.sleep(15000)
+
+        song = _playlist[_playlist.getposition()]
+        if song.getProperty(_plugin) == _stamp:
             panCheck()
-            xbmc.sleep(30000)
         else:
             exit()
 
