@@ -38,7 +38,7 @@ def panAuth():
     return 1
 
 
-def panDirectory():
+def panDir():
     while not panAuth():
         if xbmcgui.Dialog().yesno(_name, 'Login Failed', '', 'Check username/password and try again?'):
             _settings.openSettings()
@@ -56,8 +56,12 @@ def panDirectory():
     else:		stations = sorted(_pandora.stations, key=lambda station: station.name)	# A-Z
 
     for station in stations:
+        img = _settings.getSetting("img-%s" % station.id)
+
         li = xbmcgui.ListItem(station.name, station.id)
         li.setProperty('IsPlayable', 'true')
+        li.setIconImage(img)
+        li.setThumbnailImage(img)
         xbmcplugin.addDirectoryItem(_handle, _base + '?station=' + station.id, li)
 
     xbmcplugin.endOfDirectory(_handle)
@@ -77,9 +81,12 @@ def panSave(song, path):
     os.renames(temp, strm)
 
 
-def panAdd(song, path):
+def panQueue(song, path):
     global _track, _play, _frsh
-    xbmc.log("%s.Add (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
+    track = _track
+    _track += 1
+    
+    xbmc.log("%s.Queue (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
 
     li = xbmcgui.ListItem(_station.name)
     li.setProperty(_plugin, _stamp)
@@ -88,28 +95,18 @@ def panAdd(song, path):
     li.setIconImage(song.artUrl)
     li.setThumbnailImage(song.artUrl)
 
-    info = { 'artist' : song.artist, 'album' : song.album, 'title' : song.title, 'rating' : song.rating, 'tracknumber' : _track}
+    info = { 'artist' : song.artist, 'album' : song.album, 'title' : song.title, 'rating' : song.rating, 'tracknumber' : track}
     li.setInfo('music', info)
 
+    _settings.setSetting("img-%s" % song.stationId, song.artUrl)
     _playlist.add(path, li)
-    _track += 1
     _play = True
     _frsh = True
 
 
-def panFetch(song):
-    global _pend
-    _pend += 1
-
-    path = "%s/%s.m4a" % (_m4a, song.songId)
-    if os.path.isfile(path):
-        xbmc.log("%s.Fetch DUP (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
-        panAdd(song, path)
-        _pend -= 1
-        return
-
+def panFetch(song, path):
     totl = 0
-    add  = False
+    qued = False
     qual = _settings.getSetting('quality')
     skip = _settings.getSetting('skip');
     isad = int(_settings.getSetting('isad')) * 1024
@@ -123,7 +120,6 @@ def panFetch(song):
     
     if size == 341980:	# empty song cause requesting to fast
         xbmc.log("%s.Fetch EMPTY (%s, %7d) '%s - %s'" % (_plugin, song.songId, size, song.artist, song.title))
-        _pend -= 1
         return
 
     xbmc.log("%s.Fetch %s (%s, %7d) '%s - %s'" % (_plugin, strm.reason, song.songId, size, song.artist, song.title))
@@ -133,12 +129,15 @@ def panFetch(song):
     while (data) and (totl < size):
         file.write(data)
         totl += len(data)
-        if (not add) and ((skip == 'false') or (totl > isad)):
-            add = True
-            panAdd(song, path)
+        if not qued:
+            if skip == 'false':
+                threading.Timer(3.0, panQueue, (song, path)).start()
+                qued = True
+            elif totl > isad:
+                panQueue(song, path)
+                qued = True
 
         if totl >= size: break
-
         try:
             data = strm.read(8192)
         except:
@@ -149,17 +148,29 @@ def panFetch(song):
         if skip == 'true':
             xbmc.log("%s.Fetch SKIP (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
             os.remove(path)
-            _pend -= 1
-            return
-        else:
+        elif qued == False:
             song.artist = song.album = song.title = 'Advertisement'        
             path2 = path + '.ad.m4a'
             os.renames(path, path2)
             path = path2
-            panAdd(song, path)
-    
+            panQueue(song, path)
+
+    else:
+        panSave(song, path)
+
+
+def panSong(song):
+    global _pend
+    _pend += 1
+
+    path = "%s/%s.m4a" % (_m4a, song.songId)
+    if os.path.isfile(path):
+        xbmc.log("%s.Song DUP (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
+        panQueue(song, path)
+    else:
+        panFetch(song, path)
+
     _pend -= 1
-    panSave(song, path)
 
 
 def panFill():
@@ -180,7 +191,7 @@ def panFill():
     xbmc.log("%s.Fill (%s, %d) '%s'" % (_plugin, _station.id, len(songs), _station.name))
 
     for song in songs:
-        threading.Thread(target = panFetch, args = (song,)).start()
+        threading.Thread(target = panSong, args = (song,)).start()
 
 
 def panPlay():
@@ -236,4 +247,4 @@ if _station is not None:
             exit()
 
 else:
-    panDirectory()
+    panDir()
