@@ -50,7 +50,7 @@ diff -ruN xbmc-13.2-Gotham.orig/addons/visualization.video/resources/settings.xm
 +</settings>
 diff -ruN xbmc-13.2-Gotham.orig/configure.in xbmc-13.2-Gotham/configure.in
 --- xbmc-13.2-Gotham.orig/configure.in	2014-08-17 09:19:05.000000000 -0400
-+++ xbmc-13.2-Gotham/configure.in	2014-10-01 15:09:39.619444807 -0400
++++ xbmc-13.2-Gotham/configure.in	2014-10-05 10:25:21.671246505 -0400
 @@ -135,6 +135,8 @@
  fishbmc_disabled="== FishBMC disabled. =="
  projectm_enabled="== ProjectM enabled. =="
@@ -81,7 +81,7 @@ diff -ruN xbmc-13.2-Gotham.orig/configure.in xbmc-13.2-Gotham/configure.in
 +if test "$use_videovis" = "no" || test "$use_gl" = "no"; then
 +  AC_MSG_NOTICE($videovis_disabled)
 +  DISABLE_VIDEOVIS=1
-+  use_karaokevis="no"
++  use_videovis="no"
 +else
 +  AC_MSG_NOTICE($videovis_enabled)
 +  DISABLE_VIDEOVIS=0

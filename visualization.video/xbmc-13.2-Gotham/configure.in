@@ -1524,7 +1524,7 @@ fi
 if test "$use_videovis" = "no" || test "$use_gl" = "no"; then
   AC_MSG_NOTICE($videovis_disabled)
   DISABLE_VIDEOVIS=1
-  use_karaokevis="no"
+  use_videovis="no"
 else
   AC_MSG_NOTICE($videovis_enabled)
   DISABLE_VIDEOVIS=0
