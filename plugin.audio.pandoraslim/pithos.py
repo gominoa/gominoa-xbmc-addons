@@ -24,16 +24,19 @@ import time
 import urllib
 import urllib2
 
+
 # This is an implementation of the Pandora JSON API using Android partner
 # credentials.
 # See http://pan-do-ra-api.wikia.com/wiki/Json/5 for API documentation.
 
 HTTP_TIMEOUT = 30
 USER_AGENT = 'pithos'
+PLAYLIST_VALIDITY_TIME = 60*60*3
+NAME_COMPARE_REGEX = re.compile(r'[^A-Za-z0-9]')
 
-RATE_BAN = 'ban'
-RATE_LOVE = 'love'
-RATE_NONE = None
+#RATE_BAN = 'ban'
+#RATE_LOVE = 'love'
+#RATE_NONE = None
 
 API_ERROR_API_VERSION_NOT_SUPPORTED = 11
 API_ERROR_COUNTRY_NOT_SUPPORTED = 12
@@ -43,10 +46,7 @@ API_ERROR_INVALID_AUTH_TOKEN = 1001
 API_ERROR_INVALID_LOGIN = 1002
 API_ERROR_LISTENER_NOT_AUTHORIZED = 1003
 API_ERROR_PARTNER_NOT_AUTHORIZED = 1010
-
-PLAYLIST_VALIDITY_TIME = 60*60*3
-
-NAME_COMPARE_REGEX = re.compile(r'[^A-Za-z0-9]')
+API_ERROR_PLAYLIST_EXCEEDED = 1039
 
 class PandoraError(IOError):
     def __init__(self, message, status=None, submsg=None):
@@ -58,6 +58,29 @@ class PandoraAuthTokenInvalid(PandoraError): pass
 class PandoraNetError(PandoraError): pass
 class PandoraAPIVersionError(PandoraError): pass
 class PandoraTimeout(PandoraNetError): pass
+
+_client = {
+    'false' : {
+        'deviceModel': 'android-generic',
+        'username': 'android',
+        'password': 'AC7IBG09A3DTSYM4R41UJWL07VLN8JI7',
+        'rpcUrl': '://tuner.pandora.com/services/json/?',
+        'encryptKey': '6#26FRL$ZWD',
+        'decryptKey': 'R=U!LH$O2B#',
+        'version' : '5',
+    },
+    'true' : {
+        'deviceModel': 'D01',
+        'username': 'pandora one',
+        'password': 'TVCKIBGS9AO9TSYLNNFUML0743LH82D',
+        'rpcUrl': '://internal-tuner.pandora.com/services/json/?',
+        'encryptKey': '2%3WCL*JU$MP]4',
+        'decryptKey': 'U#IO$RZPAB%VX2',
+        'version' : '5',
+    }
+}
+
+
 
 def pad(s, l):
     return s + "\0" * (l - len(s))
@@ -146,22 +169,23 @@ class Pandora(object):
             elif code == API_ERROR_PARTNER_NOT_AUTHORIZED:
                 raise PandoraError("Login Error", code,
                     submsg="Invalid Pandora partner keys. A Pithos update may be required.")
+            elif code == API_ERROR_PLAYLIST_EXCEEDED:
+                raise PandoraError("Playlist Error", code,
+                    submsg="You have requested too many playlists. Try again later.")
             else:
                 raise PandoraError("Pandora returned an error", code, "%s (code %d)"%(msg, code))
 
         if 'result' in tree:
             return tree['result']
 
-    def set_audio_quality(self, fmt):
-        self.audio_quality = fmt
-
     def set_url_opener(self, opener):
         self.opener = opener
 
-    def connect(self, client, user, password):
+    def connect(self, one, user, password):
         self.partnerId = self.userId = self.partnerAuthToken = None
         self.userAuthToken = self.time_offset = None
 
+        client = _client[one]
         self.rpcUrl = client['rpcUrl']
         self.blowfish_encode = Blowfish(client['encryptKey'])
         self.blowfish_decode = Blowfish(client['decryptKey'])
@@ -196,41 +220,46 @@ class Pandora(object):
                 if i.id in self.quickMixStationIds:
                     i.useQuickMix = True
 
-    def save_quick_mix(self):
-        stationIds = []
-        for i in self.stations:
-            if i.useQuickMix:
-                stationIds.append(i.id)
-        self.json_call('user.setQuickMix', {'quickMixStationIds': stationIds})
-
-    def search(self, query):
-        results = self.json_call('music.search', {'searchText': query})
-
-        l =  [SearchResult('artist', i) for i in results['artists']]
-        l += [SearchResult('song',   i) for i in results['songs']]
-        l.sort(key=lambda i: i.score, reverse=True)
-
-        return l
-
-    def add_station_by_music_id(self, musicid):
-        d = self.json_call('station.createStation', {'musicToken': musicid})
-        station = Station(self, d)
-        self.stations.append(station)
-        return station
-
     def get_station_by_id(self, id):
         for i in self.stations:
             if i.id == id:
                 return i
 
-    def add_feedback(self, trackToken, rating):
-        logging.info("pandora: addFeedback")
-        rating_bool = True if rating == RATE_LOVE else False
-        feedback = self.json_call('station.addFeedback', {'trackToken': trackToken, 'isPositive': rating_bool})
-        return feedback['feedbackId']
+#    def set_audio_quality(self, fmt):
+#        self.audio_quality = fmt
 
-    def delete_feedback(self, stationToken, feedbackId):
-        self.json_call('station.deleteFeedback', {'feedbackId': feedbackId, 'stationToken': stationToken})
+#    def save_quick_mix(self):
+#        stationIds = []
+#        for i in self.stations:
+#            if i.useQuickMix:
+#                stationIds.append(i.id)
+#        self.json_call('user.setQuickMix', {'quickMixStationIds': stationIds})
+
+#    def search(self, query):
+#        results = self.json_call('music.search', {'searchText': query})
+#
+#        l =  [SearchResult('artist', i) for i in results['artists']]
+#        l += [SearchResult('song',   i) for i in results['songs']]
+#        l.sort(key=lambda i: i.score, reverse=True)
+#
+#        return l
+
+#    def add_station_by_music_id(self, musicid):
+#        d = self.json_call('station.createStation', {'musicToken': musicid})
+#        station = Station(self, d)
+#        self.stations.append(station)
+#        return station
+
+#    def add_feedback(self, trackToken, rating):
+#        logging.info("pandora: addFeedback")
+#        rating_bool = True if rating == RATE_LOVE else False
+#        feedback = self.json_call('station.addFeedback', {'trackToken': trackToken, 'isPositive': rating_bool})
+#        return feedback['feedbackId']
+
+#    def delete_feedback(self, stationToken, feedbackId):
+#        self.json_call('station.deleteFeedback', {'feedbackId': feedbackId, 'stationToken': stationToken})
+
+
 
 class Station(object):
     def __init__(self, pandora, d):
@@ -246,12 +275,6 @@ class Station(object):
         if self.isQuickMix:
             self.pandora.quickMixStationIds = d.get('quickMixStationIds', [])
 
-    def transformIfShared(self):
-        if not self.isCreator:
-            logging.info("pandora: transforming station")
-            self.pandora.json_call('station.transformSharedStation', {'stationToken': self.idToken})
-            self.isCreator = True
-
     def get_playlist(self):
         logging.info("pandora: Get Playlist")
         playlist = self.pandora.json_call('station.getPlaylist', {'stationToken': self.idToken}, https=True)
@@ -261,126 +284,151 @@ class Station(object):
                 songs.append(Song(self.pandora, i))
         return songs
 
-    @property
-    def info_url(self):
-        return 'http://www.pandora.com/stations/'+self.idToken
+#    def transformIfShared(self):
+#        if not self.isCreator:
+#            logging.info("pandora: transforming station")
+#            self.pandora.json_call('station.transformSharedStation', {'stationToken': self.idToken})
+#            self.isCreator = True
 
-    def rename(self, new_name):
-        if new_name != self.name:
-            self.transformIfShared()
-            logging.info("pandora: Renaming station")
-            self.pandora.json_call('station.renameStation', {'stationToken': self.idToken, 'stationName': new_name})
-            self.name = new_name
+#    @property
+#    def info_url(self):
+#        return 'http://www.pandora.com/stations/'+self.idToken
 
-    def delete(self):
-        logging.info("pandora: Deleting Station")
-        self.pandora.json_call('station.deleteStation', {'stationToken': self.idToken})
+#    def rename(self, new_name):
+#        if new_name != self.name:
+#            self.transformIfShared()
+#            logging.info("pandora: Renaming station")
+#            self.pandora.json_call('station.renameStation', {'stationToken': self.idToken, 'stationName': new_name})
+#            self.name = new_name
+
+#    def delete(self):
+#        logging.info("pandora: Deleting Station")
+#        self.pandora.json_call('station.deleteStation', {'stationToken': self.idToken})
+
+
 
 class Song(object):
     def __init__(self, pandora, d):
         self.pandora = pandora
 
-        self.album = d['albumName']
-        self.artist = d['artistName']
-        self.audioUrlMap = d['audioUrlMap']
-        self.trackToken = d['trackToken']
-        self.rating = RATE_LOVE if d['songRating'] == 1 else RATE_NONE # banned songs won't play, so we don't care about them
+        self.title = d['songName'].decode("utf-8")
+        self.album = d['albumName'].decode("utf-8")
+        self.artist = d['artistName'].decode("utf-8")
+        self.artUrl = d['albumArtUrl']
+        self.rating = '5' if d['songRating'] == 1 else None #RATE_NONE # banned songs won't play, so we don't care about them
+
+        self.songId = d['songIdentity'].decode("utf-8")
         self.stationId = d['stationId']
-        self.songName = d['songName']
-        self.songDetailURL = d['songDetailUrl']
-        self.songExplorerUrl = d['songExplorerUrl']
-        self.artRadio = d['albumArtUrl']
+        self.audioUrlMap = d['audioUrlMap']
 
-        self.tired=False
-        self.message=''
-        self.start_time = None
-        self.finished = False
-        self.playlist_time = time.time()
-        self.feedbackId = None
-
-    @property
-    def title(self):
-        if not hasattr(self, '_title'):
-            # the actual name of the track, minus any special characters (except dashes) is stored
-            # as the last part of the songExplorerUrl, before the args.
-            explorer_name = self.songExplorerUrl.split('?')[0].split('/')[-1]
-            clean_expl_name = NAME_COMPARE_REGEX.sub('', explorer_name).lower()
-            clean_name = NAME_COMPARE_REGEX.sub('', self.songName).lower()
-
-            if clean_name == clean_expl_name:
-                self._title = self.songName
-            else:
-                try:
-                    xml_data = urllib.urlopen(self.songExplorerUrl)
-                    dom = minidom.parseString(xml_data.read())
-                    attr_value = dom.getElementsByTagName('songExplorer')[0].attributes['songTitle'].value
-
-                    # Pandora stores their titles for film scores and the like as 'Score name: song name'
-                    self._title = attr_value.replace('{0}: '.format(self.songName), '', 1)
-                except:
-                    self._title = self.songName
-        return self._title
-
-    @property
-    def audioUrl(self):
-        quality = self.pandora.audio_quality
         try:
-            q = self.audioUrlMap[quality]
-            logging.info("Using audio quality %s: %s %s", quality, q['bitrate'], q['encoding'])
-            return q['audioUrl']
+            self.audioUrl = {}
+            self.audioUrl['0'] = d['audioUrlMap']['lowQuality']
+            self.audioUrl['1'] = d['audioUrlMap']['mediumQuality']
+            self.audioUrl['2'] = d['audioUrlMap']['highQuality']
         except KeyError:
-            logging.warn("Unable to use audio format %s. Using %s",
-                           quality, self.audioUrlMap.keys()[0])
-            return self.audioUrlMap.values()[0]['audioUrl']
+            pass        
+
+#        self.trackToken = d['trackToken']
+#        self.songDetailURL = d['songDetailUrl']
+#        self.songExplorerUrl = d['songExplorerUrl']
+
+#        self.bitrate = None
+#        self.is_ad = None  # None = we haven't checked, otherwise True/False
+#        self.tired=False
+#        self.message=''
+#        self.start_time = None
+#        self.finished = False
+#        self.playlist_time = time.time()
+#        self.feedbackId = None
+
 
     @property
     def station(self):
         return self.pandora.get_station_by_id(self.stationId)
 
-    def rate(self, rating):
-        if self.rating != rating:
-            self.station.transformIfShared()
-            if rating == RATE_NONE:
-                if not self.feedbackId:
-                    # We need a feedbackId, get one by re-rating the song. We
-                    # could also get one by calling station.getStation, but
-                    # that requires transferring a lot of data (all feedback,
-                    # seeds, etc for the station).
-                    opposite = RATE_BAN if self.rating == RATE_LOVE else RATE_LOVE
-                    self.feedbackId = self.pandora.add_feedback(self.trackToken, opposite)
-                self.pandora.delete_feedback(self.station.idToken, self.feedbackId)
-            else:
-                self.feedbackId = self.pandora.add_feedback(self.trackToken, rating)
-            self.rating = rating
+#    @property
+#    def valid(self):
+#        return (time.time() - self.playlist_time) < PLAYLIST_VALIDITY_TIME
 
-    def set_tired(self):
-        if not self.tired:
-            self.pandora.json_call('user.sleepSong', {'trackToken': self.trackToken})
-            self.tired = True
+#    @property
+#    def title(self):
+#        if not hasattr(self, '_title'):
+#            # the actual name of the track, minus any special characters (except dashes) is stored
+#            # as the last part of the songExplorerUrl, before the args.
+#            explorer_name = self.songExplorerUrl.split('?')[0].split('/')[-1]
+#            clean_expl_name = NAME_COMPARE_REGEX.sub('', explorer_name).lower()
+#            clean_name = NAME_COMPARE_REGEX.sub('', self.songName).lower()
+#
+#            if clean_name == clean_expl_name:
+#                self._title = self.songName
+#            else:
+#                try:
+#                    xml_data = urllib.urlopen(self.songExplorerUrl)
+#                    dom = minidom.parseString(xml_data.read())
+#                    attr_value = dom.getElementsByTagName('songExplorer')[0].attributes['songTitle'].value
+#
+#                    # Pandora stores their titles for film scores and the like as 'Score name: song name'
+#                    self._title = attr_value.replace('{0}: '.format(self.songName), '', 1)
+#                except:
+#                    self._title = self.songName
+#        return self._title
 
-    def bookmark(self):
-        self.pandora.json_call('bookmark.addSongBookmark', {'trackToken': self.trackToken})
+#    @property
+#    def audioUrl(self):
+#        quality = self.pandora.audio_quality
+#        try:
+#            q = self.audioUrlMap[quality]
+#            logging.info("Using audio quality %s: %s %s", quality, q['bitrate'], q['encoding'])
+#            print q
+#            return q['audioUrl']
+#        except KeyError:
+#            logging.warn("Unable to use audio format %s. Using %s",
+#                           quality, self.audioUrlMap.keys()[0])
+#            return self.audioUrlMap.values()[0]['audioUrl']
 
-    def bookmark_artist(self):
-        self.pandora.json_call('bookmark.addArtistBookmark', {'trackToken': self.trackToken})
 
-    @property
-    def rating_str(self):
-        return self.rating
+#    def rate(self, rating):
+#        if self.rating != rating:
+#            self.station.transformIfShared()
+#            if rating == RATE_NONE:
+#                if not self.feedbackId:
+#                    # We need a feedbackId, get one by re-rating the song. We
+#                    # could also get one by calling station.getStation, but
+#                    # that requires transferring a lot of data (all feedback,
+#                    # seeds, etc for the station).
+#                    opposite = RATE_BAN if self.rating == RATE_LOVE else RATE_LOVE
+#                    self.feedbackId = self.pandora.add_feedback(self.trackToken, opposite)
+#                self.pandora.delete_feedback(self.station.idToken, self.feedbackId)
+#            else:
+#                self.feedbackId = self.pandora.add_feedback(self.trackToken, rating)
+#            self.rating = rating
 
-    def is_still_valid(self):
-        return (time.time() - self.playlist_time) < PLAYLIST_VALIDITY_TIME
+#    def set_tired(self):
+#        if not self.tired:
+#            self.pandora.json_call('user.sleepSong', {'trackToken': self.trackToken})
+#            self.tired = True
+
+#    def bookmark(self):
+#        self.pandora.json_call('bookmark.addSongBookmark', {'trackToken': self.trackToken})
+
+#    def bookmark_artist(self):
+#        self.pandora.json_call('bookmark.addArtistBookmark', {'trackToken': self.trackToken})
+
+#    @property
+#    def rating_str(self):
+#        return self.rating
 
 
-class SearchResult(object):
-    def __init__(self, resultType, d):
-        self.resultType = resultType
-        self.score = d['score']
-        self.musicId = d['musicToken']
 
-        if resultType == 'song':
-            self.title = d['songName']
-            self.artist = d['artistName']
-        elif resultType == 'artist':
-            self.name = d['artistName']
-
+#class SearchResult(object):
+#    def __init__(self, resultType, d):
+#        self.resultType = resultType
+#        self.score = d['score']
+#        self.musicId = d['musicToken']
+#
+#        if resultType == 'song':
+#            self.title = d['songName']
+#            self.artist = d['artistName']
+#        elif resultType == 'artist':
+#            self.name = d['artistName']
