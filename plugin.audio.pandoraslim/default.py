@@ -18,6 +18,8 @@ _thumb    = _query.get('thumb', None)
 _playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
 _player   = xbmc.Player()
 _pandora  = Pandora()
+_lock     = threading.Lock()
+
 _stamp    = str(time.time())
 _track    = 1
 _pend     = 0
@@ -78,8 +80,10 @@ def panSave(song, path):
     shutil.copyfile(path, tmp)
     os.renames(tmp, dst)
     
-    if not os.path.isfile(art): urllib.urlretrieve(song.artUrl, art)
-    if not os.path.isfile(alb): urllib.urlretrieve(song.artUrl, alb)
+    try:
+        if not os.path.isfile(art): urllib.urlretrieve(song.artUrl, art)
+        if not os.path.isfile(alb): urllib.urlretrieve(song.artUrl, alb)
+    except: pass
 
 
 def panQueue(song, path):
@@ -87,7 +91,7 @@ def panQueue(song, path):
     track = _track
     _track += 1
     
-    xbmc.log("%s.Queue (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
+    xbmc.log("%s.Queue (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title), xbmc.LOGDEBUG)
 
     li = xbmcgui.ListItem(_station.name)
     li.setProperty(_plugin, _stamp)
@@ -99,8 +103,10 @@ def panQueue(song, path):
     info = { 'artist' : song.artist, 'album' : song.album, 'title' : song.title, 'rating' : song.rating, 'tracknumber' : track}
     li.setInfo('music', info)
 
+    _lock.acquire()
     _playlist.add(path, li)
     _play = True
+    _lock.release()
 
     if not _settings.getSetting("img-%s" % song.stationId):
         _settings.setSetting("img-%s" % song.stationId, song.artUrl)
@@ -120,10 +126,10 @@ def panFetch(song, path):
     size = int(strm.getheader('content-length'))
 
     if size in (341980, 173310): # empty song cause requesting to fast
-        xbmc.log("%s.Fetch EMPTY (%s, %7d) '%s - %s'" % (_plugin, song.songId, size, song.artist, song.title)) #, xbmc.LOGDEBUG)
+        xbmc.log("%s.Fetch EMPTY (%s,%8d) '%s - %s'" % (_plugin, song.songId, size, song.artist, song.title), xbmc.LOGDEBUG)
         return
 
-    xbmc.log("%s.Fetch %s (%s, %7d) '%s - %s'" % (_plugin, strm.reason, song.songId, size, song.artist, song.title))
+    xbmc.log("%s.Fetch %s (%s,%8d) '%s - %s'" % (_plugin, strm.reason, song.songId, size, song.artist, song.title))
 
     file = open(path, 'wb', 0)
     data = strm.read(8192) 
@@ -257,16 +263,18 @@ def panExpire():
 
 
 def panLoop():
-    while _playlist.getposition() >= 0:
+    while True:
+        xbmc.sleep(15000)
+        _lock.acquire()
+
         try:
-            song = _playlist[_playlist.getposition()]
-            if song.getProperty(_plugin) == _stamp:
-                panCheck()
-                panExpire()
-            else: exit()
-            xbmc.sleep(15000)
-        except RuntimeError:
-            xbmc.sleep(15000)
+            if _playlist.getposition() >= 0:
+                if _playlist[_playlist.getposition()].getProperty(_plugin) == _stamp:
+                    panCheck()
+                    panExpire()
+                else: break	# not our song in playlist, exit
+        except: pass
+        _lock.release()
 
 
 def panThumb():
@@ -286,7 +294,6 @@ elif _station is not None:
         if not os.path.isdir(dir): os.makedirs(dir)
 
     panPlay()
-    xbmc.sleep(15000)
     panLoop()
     xbmc.log("%s.Exit" % _plugin)
 
