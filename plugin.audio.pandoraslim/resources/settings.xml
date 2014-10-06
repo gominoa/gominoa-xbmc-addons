@@ -11,9 +11,10 @@
 	<category label="Advanced">
 		<setting id="quality" type="enum" label="Audio Quality" values="Low|Medium|High" default="2"/>
 		<setting id="sort" type="enum" label="Sort Stations" values="Newest|A-Z|Oldest" default="0"/>
-		<setting id="listmax" type="slider" label="Playlist History" option="int" range="6,1,100" default="14"/>
-		<setting id="expire" type="slider" label="Cache Hours" option="int" range="1,1,24" default="3"/>
+		<setting id="delay" type="slider" label="Start Delay" option="int" range="1,1,30" default="5"/>
+		<setting id="listmax" type="slider" label="Playlist History" option="int" range="5,1,100" default="14"/>
 		<setting id="isad" type="slider" label="Advert Size" option="int" range="16,16,1024" default="256"/>
+		<setting id="expire" type="slider" label="Cache Hours" option="int" range="1,1,24" default="3"/>
 	</category>
 	<category label="Folders">
 		<setting id="lib" type="folder" label="Library" default="special://userdata/addon_data/plugin.audio.pandoraslim/Pandora"/>

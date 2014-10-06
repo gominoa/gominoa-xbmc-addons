@@ -120,8 +120,8 @@ def panFetch(song, path):
     strm = conn.getresponse()
     size = int(strm.getheader('content-length'))
     
-    if size == 341980:	# empty song cause requesting to fast
-        xbmc.log("%s.Fetch EMPTY (%s, %7d) '%s - %s'" % (_plugin, song.songId, size, song.artist, song.title), xbmc.LOGDEBUG)
+    if size in (341980, 173310): # empty song cause requesting to fast
+        xbmc.log("%s.Fetch EMPTY (%s, %7d) '%s - %s'" % (_plugin, song.songId, size, song.artist, song.title)) #, xbmc.LOGDEBUG)
         return
 
     xbmc.log("%s.Fetch %s (%s, %7d) '%s - %s'" % (_plugin, strm.reason, song.songId, size, song.artist, song.title))
@@ -131,19 +131,15 @@ def panFetch(song, path):
     while (data) and (totl < size):
         file.write(data)
         totl += len(data)
-        if not qued:
-            if skip == 'false':
-                threading.Timer(5.0, panQueue, (song, path)).start()
-                qued = True
-            elif totl > isad:
-                panQueue(song, path)
-                qued = True
+
+        if (not qued) and ((skip == 'false') or (size > isad)):
+            wait = int(_settings.getSetting('delay'))
+            threading.Timer(wait, panQueue, (song, path)).start()
+            qued = True
 
         if totl >= size: break
-        try:
-            data = strm.read(8192)
-        except:
-            xbmc.log("%s.Fetch TIMEOUT (%s, %7d) '%s - %s'" % (_plugin, song.songId, totl, song.artist, song.title), xbmc.LOGDEBUG)
+        try: data = strm.read(8192)
+        except: xbmc.log("%s.Fetch TIMEOUT (%s, %7d) '%s - %s'" % (_plugin, song.songId, totl, song.artist, song.title), xbmc.LOGDEBUG)
 
     file.close()
     if totl <= isad:    # looks like an ad
@@ -181,6 +177,18 @@ def panSong(song):
 
 
 def panFill():
+    global _station
+
+    if not panAuth():
+        if type(_station) is not Station:
+            str = "%s.Play NOAUTH (%s)" % _station[0]
+        else:
+            str = "%s.Play NOAUTH (%s) '%s'" % (_station.id, _station.name)
+        xbmc.log(str, xbmc.LOGWARNING)
+        return
+
+    if type(_station) is not Station: _station = _pandora.get_station_by_id(_station[0])
+
     try:
         songs = _station.get_playlist()
     except (PandoraTimeout, PandoraNetError): pass
@@ -195,14 +203,7 @@ def panFill():
 
 
 def panPlay():
-    global _station
-
-    if not panAuth():
-        xbmc.log("%s.Play NOAUTH (%s)" % (_plugin, _station), xbmc.LOGWARNING)
-        return
-
-    _station = _pandora.get_station_by_id(_station[0])
-    xbmc.log("%s.Play (%s) '%s'" % (_plugin, _station.id, _station.name))
+    xbmc.log("%s.Play (%s)" % (_plugin, _station[0]))
 
     _playlist.clear()
     panFill()
@@ -211,11 +212,17 @@ def panPlay():
     li.setPath('special://home/addons/' + _plugin + '/empty.mp3')
     li.setProperty(_plugin, _stamp)
 
-    xbmc.sleep(5000)
     start = time.time()
+    wait = int(_settings.getSetting('delay'))
+    xbmc.sleep(wait)
+
     while not _play:
         xbmc.sleep(1000)
-        if (time.time() - start) >= 60:
+        if _pend == 0:
+            xbmc.log("%s.Play: NO SONGS" % (_plugin))
+            xbmcplugin.setResolvedUrl(_handle, False, li)
+            exit()
+        elif (time.time() - start) >= 60:
             xbmc.log("%s.Play: TIMEOUT" % (_plugin))
             xbmcplugin.setResolvedUrl(_handle, False, li)
             exit()
