@@ -1,12 +1,15 @@
 import httplib, os, shutil, threading, time, urllib, urlparse
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin
 from pithos import *
+from mutagen.mp4 import MP4
+import musicbrainzngs as _brain
 
 
 
 _settings = xbmcaddon.Addon()
 _plugin   = _settings.getAddonInfo('id')
 _name     = _settings.getAddonInfo('name')
+_version  = _settings.getAddonInfo('version')
 _path     = xbmc.translatePath(_settings.getAddonInfo("profile")).decode("utf-8")
 
 _base     = sys.argv[0]
@@ -66,20 +69,43 @@ def panDir():
     xbmcplugin.endOfDirectory(_handle, cacheToDisc = False)
 
 
+def panTag(song, path):
+    tag = MP4(path)
+    dur = str(int(tag.info.length * 1000))
+    res = _brain.search_recordings(limit = 1, query = song.title, artist = song.artist, release = song.album, qdur = dur)['recording-list'][0]
+
+    if res['ext:score'] == '100':
+        tag['----:com.apple.iTunes:MusicBrainz Track Id'] = res['id']
+
+    tag['\xa9nam'] = song.title
+    tag['\xa9alb'] = song.album
+    tag['\xa9ART'] = song.artist
+    tag.save()
+
+    xbmc.log("%s.Tag (%s,%4s%%) '%s - %s'" % (_plugin, song.songId, res['ext:score'], song.artist, song.title))
+
+
 def panSave(song, path):
     if _settings.getSetting('save') != 'true': return
-    xbmc.log("%s.Save (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
+    xbmc.log("%s.Save (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title), xbmc.LOGDEBUG)
+
+    tmp = "%s.temp" % (path)
+    shutil.copyfile(path, tmp)
+    panTag(song, tmp)
 
     lib = xbmc.translatePath(_settings.getSetting('lib')).decode("utf-8")
 
-    tmp = "%s.temp" % (path)
+    badc        = '\/?%*:|"<>.'		# remove bad filename chars
+    song.artist = ''.join(c for c in song.artist if c not in badc)
+    song.album  = ''.join(c for c in song.album  if c not in badc)
+    song.title  = ''.join(c for c in song.title  if c not in badc)
+
     art = "%s/%s/folder.jpg" % (lib, song.artist)
     alb = "%s/%s/%s - %s/folder.jpg" % (lib, song.artist, song.artist, song.album)
     dst = "%s/%s/%s - %s/%s - %s.m4a" % (lib, song.artist, song.artist, song.album, song.artist, song.title)
 
-    shutil.copyfile(path, tmp)
     os.renames(tmp, dst)
-    
+
     try:
         if not os.path.isfile(art): urllib.urlretrieve(song.artUrl, art)
         if not os.path.isfile(alb): urllib.urlretrieve(song.artUrl, alb)
@@ -144,7 +170,7 @@ def panFetch(song, path):
 
         if totl >= size: break
         try: data = strm.read(8192)
-        except: xbmc.log("%s.Fetch TIMEOUT (%s, %7d) '%s - %s'" % (_plugin, song.songId, totl, song.artist, song.title), xbmc.LOGDEBUG)
+        except: xbmc.log("%s.Fetch TIMEOUT (%s,%8d) '%s - %s'" % (_plugin, song.songId, totl, song.artist, song.title)) #, xbmc.LOGDEBUG)
 
     file.close()
     if totl <= isad:    # looks like an ad
@@ -223,13 +249,10 @@ def panPlay():
 
     while not _play:
         xbmc.sleep(1000)
-        if _pend == 0:
+        if (_pend == 0) or (time.time() - start) >= 60:
             xbmc.log("%s.Play: NO SONGS" % (_plugin))
-            xbmcplugin.setResolvedUrl(_handle, False, li)
-            exit()
-        elif (time.time() - start) >= 60:
-            xbmc.log("%s.Play: TIMEOUT" % (_plugin))
-            xbmcplugin.setResolvedUrl(_handle, False, li)
+            xbmcgui.Dialog().ok(_name, 'No Tracks Received', '', 'Try again later')
+#            xbmcplugin.setResolvedUrl(_handle, False, li)
             exit()
 
     xbmcplugin.setResolvedUrl(_handle, True, li)
@@ -292,6 +315,8 @@ elif _station is not None:
     for dir in [ 'm4a', 'lib' ]:
         dir = xbmc.translatePath(_settings.getSetting(dir)).decode("utf-8")
         if not os.path.isdir(dir): os.makedirs(dir)
+
+    _brain.set_useragent("xbmc.%s" % _plugin, _version)
 
     panPlay()
     panLoop()
