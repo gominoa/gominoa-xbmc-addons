@@ -1,8 +1,7 @@
-diff --git a/Makefile.in b/Makefile.in
-index bda532b..6c08a47 100644
---- a/Makefile.in
-+++ b/Makefile.in
-@@ -249,6 +249,12 @@ else
+diff -ruN xbmc-14.0a4-Helix.orig/Makefile.in xbmc-14.0a4-Helix/Makefile.in
+--- xbmc-14.0a4-Helix.orig/Makefile.in	2014-10-02 12:06:19.000000000 -0400
++++ xbmc-14.0a4-Helix/Makefile.in	2014-10-03 01:29:28.592112283 -0400
+@@ -249,6 +249,12 @@
    INSTALL_FILTER+= .*visualization\.goom.*
  endif
  
@@ -15,11 +14,9 @@ index bda532b..6c08a47 100644
  LIBADDON_DIRS=\
  	lib/addons/library.xbmc.addon \
  	lib/addons/library.xbmc.codec \
-diff --git a/addons/visualization.video/addon.xml b/addons/visualization.video/addon.xml
-new file mode 100644
-index 0000000..412a4cb
---- /dev/null
-+++ b/addons/visualization.video/addon.xml
+diff -ruN xbmc-14.0a4-Helix.orig/addons/visualization.video/addon.xml xbmc-14.0a4-Helix/addons/visualization.video/addon.xml
+--- xbmc-14.0a4-Helix.orig/addons/visualization.video/addon.xml	1969-12-31 19:00:00.000000000 -0500
++++ xbmc-14.0a4-Helix/addons/visualization.video/addon.xml	2014-10-03 01:17:34.439132420 -0400
 @@ -0,0 +1,22 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<addon id="visualization.video"
@@ -43,21 +40,18 @@ index 0000000..412a4cb
 +		<source>https://github.com/gominoa/gominoa-xbmc-addons</source>
 +	</extension>
 +</addon>
-diff --git a/addons/visualization.video/resources/settings.xml b/addons/visualization.video/resources/settings.xml
-new file mode 100644
-index 0000000..e77b58b
---- /dev/null
-+++ b/addons/visualization.video/resources/settings.xml
+diff -ruN xbmc-14.0a4-Helix.orig/addons/visualization.video/resources/settings.xml xbmc-14.0a4-Helix/addons/visualization.video/resources/settings.xml
+--- xbmc-14.0a4-Helix.orig/addons/visualization.video/resources/settings.xml	1969-12-31 19:00:00.000000000 -0500
++++ xbmc-14.0a4-Helix/addons/visualization.video/resources/settings.xml	2014-10-03 00:19:59.437885149 -0400
 @@ -0,0 +1,4 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<settings>
 +	<setting id="video" label="Video" type="video"/>
 +</settings>
-diff --git a/configure.in b/configure.in
-index a05b444..92d45b2 100644
---- a/configure.in
-+++ b/configure.in
-@@ -171,6 +171,8 @@ fishbmc_enabled="== FishBMC enabled. =="
+diff -ruN xbmc-14.0a4-Helix.orig/configure.in xbmc-14.0a4-Helix/configure.in
+--- xbmc-14.0a4-Helix.orig/configure.in	2014-10-02 12:06:19.000000000 -0400
++++ xbmc-14.0a4-Helix/configure.in	2014-10-06 14:08:25.314552843 -0400
+@@ -171,6 +171,8 @@
  fishbmc_disabled="== FishBMC disabled. =="
  projectm_enabled="== ProjectM enabled. =="
  projectm_disabled="== ProjectM disabled. =="
@@ -66,7 +60,7 @@ index a05b444..92d45b2 100644
  wayland_enabled="== Wayland enabled. =="
  wayland_disabled="== Wayland disabled. =="
  x11_enabled="== X11 enabled. =="
-@@ -354,6 +356,12 @@ AC_ARG_ENABLE([projectm],
+@@ -354,6 +356,12 @@
    [use_projectm=$enableval],
    [use_projectm=yes])
  
@@ -79,8 +73,8 @@ index a05b444..92d45b2 100644
  AC_ARG_ENABLE([wayland],
    [AS_HELP_STRING([--enable-wayland],
    [enable wayland (default is no) 'Linux Only'])],
-@@ -1419,6 +1427,16 @@ else
-   DISABLE_PROJECTM=0
+@@ -1409,6 +1417,16 @@
+   DISABLE_FISHBMC=0
  fi
  
 +# VIDEOVIS
@@ -93,11 +87,11 @@ index a05b444..92d45b2 100644
 +  DISABLE_VIDEOVIS=0
 +fi
 +
- # touch skin
- use_touch_skin=no
- if [[ -f "addons/skin.re-touched/addon.xml" ]]; then 
-@@ -2130,6 +2148,12 @@ else
-   final_message="$final_message\n  ProjectM:\tNo"
+ # PROJECTM
+ if test "$use_projectm" = "no" || test "$use_gl" = "no"; then
+   AC_MSG_NOTICE($projectm_disabled)
+@@ -2124,6 +2142,12 @@
+   final_message="$final_message\n  FishBMC:\tNo"
  fi
  
 +if test "$use_videovis" = "yes"; then
@@ -106,10 +100,10 @@ index a05b444..92d45b2 100644
 +  final_message="$final_message\n  Video Vis:\tNo"
 +fi
 +
- if test "$use_touch_skin" = "yes"; then
-   final_message="$final_message\n  Touch skin:\tYes"
+ if test "$use_projectm" = "yes"; then
+   final_message="$final_message\n  ProjectM:\tYes"
  else
-@@ -2463,6 +2487,7 @@ OUTPUT_FILES="Makefile \
+@@ -2463,6 +2487,7 @@
      xbmc/visualizations/OpenGLSpectrum/Makefile \
      xbmc/visualizations/fishBMC/Makefile \
      xbmc/visualizations/WaveForm/Makefile \
@@ -117,11 +111,9 @@ index a05b444..92d45b2 100644
      xbmc/windowing/Makefile \
      xbmc/windowing/egl/Makefile \
      lib/addons/library.xbmc.addon/Makefile \
-diff --git a/xbmc/visualizations/video/Makefile.in b/xbmc/visualizations/video/Makefile.in
-new file mode 100644
-index 0000000..607d897
---- /dev/null
-+++ b/xbmc/visualizations/video/Makefile.in
+diff -ruN xbmc-14.0a4-Helix.orig/xbmc/visualizations/video/Makefile.in xbmc-14.0a4-Helix/xbmc/visualizations/video/Makefile.in
+--- xbmc-14.0a4-Helix.orig/xbmc/visualizations/video/Makefile.in	1969-12-31 19:00:00.000000000 -0500
++++ xbmc-14.0a4-Helix/xbmc/visualizations/video/Makefile.in	2014-10-03 01:19:42.799832664 -0400
 @@ -0,0 +1,21 @@
 +ARCH=@ARCH@
 +CXXFLAGS=-fPIC
@@ -144,11 +136,9 @@ index 0000000..607d897
 +endif
 +
 +include @abs_top_srcdir@/Makefile.include
-diff --git a/xbmc/visualizations/video/video.cpp b/xbmc/visualizations/video/video.cpp
-new file mode 100644
-index 0000000..54c3e21
---- /dev/null
-+++ b/xbmc/visualizations/video/video.cpp
+diff -ruN xbmc-14.0a4-Helix.orig/xbmc/visualizations/video/video.cpp xbmc-14.0a4-Helix/xbmc/visualizations/video/video.cpp
+--- xbmc-14.0a4-Helix.orig/xbmc/visualizations/video/video.cpp	1969-12-31 19:00:00.000000000 -0500
++++ xbmc-14.0a4-Helix/xbmc/visualizations/video/video.cpp	2014-10-03 01:44:34.158174674 -0400
 @@ -0,0 +1,250 @@
 +/*
 + *      Copyright (C) 2005-2013 Team XBMC

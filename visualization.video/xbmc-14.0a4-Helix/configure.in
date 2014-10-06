@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([xbmc], [13.9.705], [http://issues.xbmc.org])
+AC_INIT([xbmc], [13.9.704], [http://issues.xbmc.org])
 AC_CONFIG_HEADERS([xbmc/config.h])
 AH_TOP([#pragma once])
 m4_include([m4/ax_prog_cc_for_build.m4])
@@ -1417,16 +1417,6 @@ else
   DISABLE_FISHBMC=0
 fi
 
-# PROJECTM
-if test "$use_projectm" = "no" || test "$use_gl" = "no"; then
-  AC_MSG_NOTICE($projectm_disabled)
-  DISABLE_PROJECTM=1
-  use_projectm="no"
-else
-  AC_MSG_NOTICE($projectm_enabled)
-  DISABLE_PROJECTM=0
-fi
-
 # VIDEOVIS
 if test "$use_videovis" = "no" || test "$use_gl" = "no"; then
   AC_MSG_NOTICE($videovis_disabled)
@@ -1435,6 +1425,16 @@ if test "$use_videovis" = "no" || test "$use_gl" = "no"; then
 else
   AC_MSG_NOTICE($videovis_enabled)
   DISABLE_VIDEOVIS=0
+fi
+
+# PROJECTM
+if test "$use_projectm" = "no" || test "$use_gl" = "no"; then
+  AC_MSG_NOTICE($projectm_disabled)
+  DISABLE_PROJECTM=1
+  use_projectm="no"
+else
+  AC_MSG_NOTICE($projectm_enabled)
+  DISABLE_PROJECTM=0
 fi
 
 # touch skin
@@ -2142,16 +2142,16 @@ else
   final_message="$final_message\n  FishBMC:\tNo"
 fi
 
-if test "$use_projectm" = "yes"; then
-  final_message="$final_message\n  ProjectM:\tYes"
-else
-  final_message="$final_message\n  ProjectM:\tNo"
-fi
-
 if test "$use_videovis" = "yes"; then
   final_message="$final_message\n  Video Vis:\tYes"
 else
   final_message="$final_message\n  Video Vis:\tNo"
+fi
+
+if test "$use_projectm" = "yes"; then
+  final_message="$final_message\n  ProjectM:\tYes"
+else
+  final_message="$final_message\n  ProjectM:\tNo"
 fi
 
 if test "$use_touch_skin" = "yes"; then
