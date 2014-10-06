@@ -15,7 +15,7 @@
 
 <addon id="plugin.audio.pandoraslim"
     name="Pandora Slim"
-    version="0.2.2"
+    version="0.2.3"
     provider-name="gominoa">
     <requires>
         <import addon="xbmc.python" version="2.1.0"/>

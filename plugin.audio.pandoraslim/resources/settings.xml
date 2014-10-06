@@ -12,7 +12,7 @@
 		<setting id="quality" type="enum" label="Audio Quality" values="Low|Medium|High" default="2"/>
 		<setting id="sort" type="enum" label="Sort Stations" values="Newest|A-Z|Oldest" default="0"/>
 		<setting id="listmax" type="slider" label="Playlist History" option="int" range="6,1,100" default="14"/>
-		<setting id="time" type="slider" label="Cache Hours" option="int" range="3,1,24" default="24"/>
+		<setting id="expire" type="slider" label="Cache Hours" option="int" range="1,1,24" default="3"/>
 		<setting id="isad" type="slider" label="Advert Size" option="int" range="16,16,1024" default="256"/>
 	</category>
 	<category label="Folders">
