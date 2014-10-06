@@ -109,17 +109,16 @@ def panQueue(song, path):
 def panFetch(song, path):
     totl = 0
     qued = False
-    qual = _settings.getSetting('quality')
     skip = _settings.getSetting('skip');
     isad = int(_settings.getSetting('isad')) * 1024
+    qual = _settings.getSetting('quality')
     url  = urlparse.urlsplit(song.audioUrl[qual]['audioUrl'])
-    urlp = url.path + '?' + url.query
 
     conn = httplib.HTTPConnection(url.netloc)
-    conn.request('GET', url.path + '?' + url.query)
+    conn.request('GET', "%s?%s" % (url.path, url.query))
     strm = conn.getresponse()
     size = int(strm.getheader('content-length'))
-    
+
     if size in (341980, 173310): # empty song cause requesting to fast
         xbmc.log("%s.Fetch EMPTY (%s, %7d) '%s - %s'" % (_plugin, song.songId, size, song.artist, song.title)) #, xbmc.LOGDEBUG)
         return
@@ -161,7 +160,7 @@ def panSong(song):
     global _pend
     _pend += 1
 
-    lib = "%s/%s/%s - %s/%s - %s.m4a" % (xbmc.translatePath(_settings.getSetting('lib')).decode("utf-8"), song.artist, song.artist, song.title, song.artist, song.title)
+    lib = "%s/%s/%s - %s/%s - %s.m4a" % (xbmc.translatePath(_settings.getSetting('lib')).decode("utf-8"), song.artist, song.artist, song.album, song.artist, song.title)
     m4a = "%s/%s.m4a" % (xbmc.translatePath(_settings.getSetting('m4a')).decode("utf-8"), song.songId)
 
     if os.path.isfile(lib):
