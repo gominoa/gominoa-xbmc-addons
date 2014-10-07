@@ -74,16 +74,20 @@ def panTag(song, path):
     tag = MP4(path)
     dur = str(int(tag.info.length * 1000))
     res = _brain.search_recordings(limit = 1, query = song.title, artist = song.artist, release = song.album, qdur = dur)['recording-list'][0]
+    sco = res['ext:score']
 
-    if res['ext:score'] == '100':
+    if sco == '100':
         tag['----:com.apple.iTunes:MusicBrainz Track Id'] = res['id']
+        tag['\xa9ART'] = song.artist
+        tag['\xa9alb'] = song.album
+        tag['\xa9nam'] = song.title
 
-    tag['\xa9nam'] = song.title
-    tag['\xa9alb'] = song.album
-    tag['\xa9ART'] = song.artist
-    tag.save()
-
-    xbmc.log("%s.Tag (%s,%4s%%) '%s - %s'" % (_plugin, song.songId, res['ext:score'], song.artist, song.title))
+        tag.save()
+        xbmc.log("%s.Tag   OK (%s,%8s%%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
+        return True
+    else:
+        xbmc.log("%s.Tag FAIL (%s,%8s%%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
+        return False
 
 
 def panSave(song, path):
@@ -92,20 +96,20 @@ def panSave(song, path):
 
     tmp = "%s.temp" % (path)
     shutil.copyfile(path, tmp)
-    panTag(song, tmp)
 
-    lib = xbmc.translatePath(_settings.getSetting('lib')).decode("utf-8")
+    if panTag(song, tmp):
+        lib = _settings.getSetting('lib')
+        dst = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.m4a" % (lib, song.artist, song.artist, song.album, song.artist, song.title))).decode("utf-8")
+        alb = xbmc.translatePath(("%s/%s/%s - %s/folder.jpg"  % (lib, song.artist, song.artist, song.album))                         ).decode("utf-8")
+        art = xbmc.translatePath(("%s/%s/folder.jpg"          % (lib, song.artist))                                                  ).decode("utf-8")
 
-    art = "%s/%s/folder.jpg" % (lib, song.artist)
-    alb = "%s/%s/%s - %s/folder.jpg" % (lib, song.artist, song.artist, song.album)
-    dst = "%s/%s/%s - %s/%s - %s.m4a" % (lib, song.artist, song.artist, song.album, song.artist, song.title)
+        os.renames(tmp, dst)
+        try:
+            if not os.path.isfile(alb): urllib.urlretrieve(song.artUrl, alb)
+            if not os.path.isfile(art): urllib.urlretrieve(song.artUrl, art)
+        except: pass
 
-    os.renames(tmp, dst)
-
-    try:
-        if not os.path.isfile(art): urllib.urlretrieve(song.artUrl, art)
-        if not os.path.isfile(alb): urllib.urlretrieve(song.artUrl, alb)
-    except: pass
+    else: os.remove(tmp)
 
 
 def panQueue(song, path):
@@ -188,9 +192,8 @@ def panSong(song):
     global _pend
     _pend += 1
 
-    lib = "%s/%s/%s - %s/%s - %s.m4a" % (xbmc.translatePath(_settings.getSetting('lib')).decode("utf-8"), song.artist, song.artist, song.album, song.artist, song.title)
-    m4a = "%s/%s.m4a" % (xbmc.translatePath(_settings.getSetting('m4a')).decode("utf-8"), song.songId)
-
+    lib = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.m4a" % (_settings.getSetting('lib'), song.artist, song.artist, song.album, song.artist, song.title))).decode("utf-8")
+    m4a = xbmc.translatePath(("%s/%s.m4a"                 % (_settings.getSetting('m4a'), song.songId))                                                  ).decode("utf-8")
     if os.path.isfile(lib):
         xbmc.log("%s.Song LIB (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
         panQueue(song, lib)
@@ -279,7 +282,7 @@ def panCheck():
 
 
 def panExpire():
-    m4a = xbmc.translatePath(_settings.getSetting('m4a').decode("utf-8"))
+    m4a = xbmc.translatePath(_settings.getSetting('m4a')).decode("utf-8")
     exp = float(_settings.getSetting('expire')) * 3600.0
 
     regx = re.compile('^[a-z0-9]{32}\.')
