@@ -115,7 +115,7 @@ def panQueue(song, path):
     track = _track
     _track += 1
     
-    xbmc.log("%s.Queue (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title), xbmc.LOGDEBUG)
+    xbmc.log("%s.Queue (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
 
     li = xbmcgui.ListItem(_station.name)
     li.setProperty(_plugin, _stamp)
@@ -172,9 +172,9 @@ def panFetch(song, path):
         except: xbmc.log("%s.Fetch TIMEOUT (%s,%8d) '%s - %s'" % (_plugin, song.songId, totl, song.artist, song.title)) #, xbmc.LOGDEBUG)
 
     file.close()
-    if totl <= isad:    # looks like an ad
+    if totl <= isad:		# looks like an ad
         if skip == 'true':
-            xbmc.log("%s.Fetch SKIP (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title), xbmc.LOGDEBUG)
+            xbmc.log("%s.Fetch SKIP (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
             os.remove(path)
         elif qued == False:
             song.artist = song.album = song.title = 'Advertisement'        
@@ -254,14 +254,15 @@ def panPlay():
 
     while not _play:
         xbmc.sleep(1000)
-        if (_pend == 0) or (time.time() - start) >= 60:
-            xbmc.log("%s.Play: NO SONGS" % (_plugin))
+        if (_pend == 0) or ((time.time() - start) >= 60):
+            xbmc.log("%s.Play: NO SONGS (%d, %ds)" % (_plugin, _pend, time.time() - start))
             xbmcgui.Dialog().ok(_name, 'No Tracks Received', '', 'Try again later')
             exit()
 
     _playlist.clear()
     _lock.release()
-    xbmc.sleep(1000)
+    time.sleep(0.01)	# yield to the song threads
+    xbmc.sleep(1000)	# this might return control to xbmc and skip the other threads
 
     xbmcplugin.setResolvedUrl(_handle, True, li)
     _player.play(_playlist)
