@@ -25,7 +25,6 @@ _lock     = threading.Lock()
 
 _stamp    = str(time.time())
 _track    = 1
-_pend     = 0
 _play     = False
 
 
@@ -196,12 +195,17 @@ def panFetch(song, path):
             threading.Timer(wait, panQueue, (song, path)).start()
             qued = True
 
-        if totl >= size: break
+        if (totl >= size) or xbmc.abortRequested: break
+
         try: data = strm.read(8192)
         except: xbmc.log("%s.Fetch TIMEOUT (%s,%8d) '%s - %s'" % (_plugin, song.songId, totl, song.artist, song.title)) #, xbmc.LOGDEBUG)
 
     file.close()
-    if totl <= isad:		# looks like an ad
+    
+    if totl < size:		# incomplete file
+        xbmc.log("%s.Fetch RM (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
+        os.remove(path)
+    elif totl <= isad:		# looks like an ad
         if skip == 'true':
             xbmc.log("%s.Fetch AD (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
             os.remove(path)
@@ -216,9 +220,6 @@ def panFetch(song, path):
 
 
 def panSong(song):
-    global _pend
-    _pend += 1
-
     lib = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.m4a" % (_settings.getSetting('lib'), song.artist, song.artist, song.album, song.artist, song.title))).decode("utf-8")
     m4a = xbmc.translatePath(("%s/%s.m4a"                 % (_settings.getSetting('m4a'), song.songId))                                                  ).decode("utf-8")
 
@@ -230,8 +231,6 @@ def panSong(song):
         panQueue(song, m4a)
     else:
         panFetch(song, m4a)
-
-    _pend -= 1
 
 
 def panStrip(song):
@@ -279,16 +278,20 @@ def panPlay():
     start = time.time()
 
     while not _play:
+        if xbmc.abortRequested:
+            _lock.release()
+            exit()
+    
         xbmc.sleep(1000)
-        if (_pend == 0) or ((time.time() - start) >= 60):
-            xbmc.log("%s.Play BAD (%13s, %d, %ds)" % (_plugin, _stamp, _pend, time.time() - start))
+        if (threading.active_count() == 1) or ((time.time() - start) >= 60):
+            xbmc.log("%s.Play BAD (%13s, %ds)" % (_plugin, _stamp, time.time() - start))
             xbmcgui.Dialog().ok(_name, 'No Tracks Received', '', 'Try again later')
             exit()
 
     _playlist.clear()
     _lock.release()
     time.sleep(0.01)	# yield to the song threads
-    xbmc.sleep(1000)	# this might return control to xbmc and skip the other threads
+    xbmc.sleep(1000)	# might return control to xbmc and skip the other threads ?
 
     xbmcplugin.setResolvedUrl(_handle, True, li)
     _player.play(_playlist)
@@ -298,7 +301,7 @@ def panPlay():
 
 
 def panCheck():
-    if (_pend == 0) and ((_playlist.size() - _playlist.getposition()) <= 1):
+    if (threading.active_count() == 1) and ((_playlist.size() - _playlist.getposition()) <= 1):
         panFill()
 
     while (_playlist.size() > int(_settings.getSetting('listmax'))) and (_playlist.getposition() > 0):
@@ -324,9 +327,10 @@ def panExpire():
 
 def panLoop():
     while True:
-        xbmc.sleep(15000)
-        _lock.acquire()
+        xbmc.sleep(5000)
+        if xbmc.abortRequested: break
 
+        _lock.acquire()
         try:
             if _playlist.getposition() >= 0:
                 if _playlist[_playlist.getposition()].getProperty(_plugin) == _stamp:
@@ -334,7 +338,6 @@ def panLoop():
                     panExpire()
                 else: break	# not our song in playlist, exit
         except: pass
-
         _lock.release()
 
 
