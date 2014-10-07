@@ -125,9 +125,9 @@ def panQueue(song, path):
     info = { 'artist' : song.artist, 'album' : song.album, 'title' : song.title, 'rating' : song.rating, 'tracknumber' : track}
     li.setInfo('music', info)
 
+    _play = True
     _lock.acquire()
     _playlist.add(path, li)
-    _play = True
     _lock.release()
 
     if not _settings.getSetting("img-%s" % song.stationId):
@@ -204,7 +204,7 @@ def panSong(song):
 
 
 def panStrip(song):
-    badc        = '\/?%*:|"<>.'		# remove bad filename chars
+    badc        = '\\/?%*:|"<>.'	# remove bad filename chars
     song.artist = ''.join(c for c in song.artist if c not in badc)
     song.album  = ''.join(c for c in song.album  if c not in badc)
     song.title  = ''.join(c for c in song.title  if c not in badc)
@@ -242,7 +242,7 @@ def panFill():
 def panPlay():
     xbmc.log("%s.Play (%s)" % (_plugin, _station[0]))
 
-    _playlist.clear()
+    _lock.acquire()
     panFill()
 
     li = xbmcgui.ListItem(_station.name)
@@ -250,16 +250,17 @@ def panPlay():
     li.setProperty(_plugin, _stamp)
 
     start = time.time()
-    wait = int(_settings.getSetting('delay'))
-    xbmc.sleep(wait)
 
     while not _play:
         xbmc.sleep(1000)
         if (_pend == 0) or (time.time() - start) >= 60:
             xbmc.log("%s.Play: NO SONGS" % (_plugin))
             xbmcgui.Dialog().ok(_name, 'No Tracks Received', '', 'Try again later')
-#            xbmcplugin.setResolvedUrl(_handle, False, li)
             exit()
+
+    _playlist.clear()
+    _lock.release()
+    xbmc.sleep(1000)
 
     xbmcplugin.setResolvedUrl(_handle, True, li)
     _player.play(_playlist)
@@ -307,7 +308,7 @@ def panLoop():
 
 
 def panThumb():
-    img = xbmcgui.Dialog().browseSingle(2, 'Select Thumb', 'pictures', useThumbs = True)
+    img = xbmcgui.Dialog().browseSingle(2, 'Select Thumb', 'files', useThumbs = True)
     _settings.setSetting("img-%s" % _thumb[0], img)
     xbmc.executebuiltin("Container.Refresh")
 
