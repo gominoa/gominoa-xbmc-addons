@@ -81,10 +81,10 @@ def panTag(song, path):
         tag['\xa9nam'] = song.title
 
         tag.save()
-        xbmc.log("%s.Tag   OK (%s,%8s%%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
+        xbmc.log("%s.Tag   OK (%s,%7s%%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
         return True
     else:
-        xbmc.log("%s.Tag FAIL (%s,%8s%%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
+        xbmc.log("%s.Tag FAIL (%s,%7s%%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
         return False
 
 
@@ -241,7 +241,7 @@ def panFill():
 
 
 def panPlay():
-    xbmc.log("%s.Play (%s)" % (_plugin, _station[0]))
+    xbmc.log("%s.Play (%s, %s)" % (_plugin, _stamp, _station[0]))
 
     _lock.acquire()
     panFill()
@@ -255,7 +255,7 @@ def panPlay():
     while not _play:
         xbmc.sleep(1000)
         if (_pend == 0) or ((time.time() - start) >= 60):
-            xbmc.log("%s.Play: NO SONGS (%d, %ds)" % (_plugin, _pend, time.time() - start))
+            xbmc.log("%s.Play: NO SONGS (%s, %d, %ds)" % (_plugin, _stamp, _pend, time.time() - start))
             xbmcgui.Dialog().ok(_name, 'No Tracks Received', '', 'Try again later')
             exit()
 
@@ -326,6 +326,6 @@ elif _station is not None:
 
     panPlay()
     panLoop()
-    xbmc.log("%s.Exit" % _plugin)
+    xbmc.log("%s.Exit (%s)" % (_plugin, _stamp))
 
 else: panDir()
