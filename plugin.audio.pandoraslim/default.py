@@ -116,7 +116,7 @@ def panTag(song, path):
 
 
 def panSave(song, path):
-    if _settings.getSetting('save') != 'true': return
+    if _settings.getSetting('mode') != '1': return	# not Save to Library
 
     tmp = "%s.temp" % (path)
     shutil.copyfile(path, tmp)
@@ -157,9 +157,6 @@ def panQueue(song, path):
     _lock.acquire()
     _playlist.add(path, li)
     _lock.release()
-
-    if not _settings.getSetting("img-%s" % song.stationId):
-        _settings.setSetting("img-%s" % song.stationId, song.artUrl)
 
     xbmc.log("%s.Queue OK (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
 
@@ -223,13 +220,23 @@ def panSong(song):
     lib = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.m4a" % (_settings.getSetting('lib'), song.artist, song.artist, song.album, song.artist, song.title))).decode("utf-8")
     m4a = xbmc.translatePath(("%s/%s.m4a"                 % (_settings.getSetting('m4a'), song.songId))                                                  ).decode("utf-8")
 
-    if os.path.isfile(lib):
+    if not _settings.getSetting("img-%s" % song.stationId):	# Set Station Rhumb
+        _settings.setSetting("img-%s" % song.stationId, song.artUrl)
+
+    if os.path.isfile(lib):			# Found in Library
         xbmc.log("%s.Song LIB (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
         panQueue(song, lib)
-    elif os.path.isfile(m4a):
+
+    elif os.path.isfile(m4a):			# Found in Cache
         xbmc.log("%s.Song M4A (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
         panQueue(song, m4a)
-    else:
+
+    elif _settings.getSetting('mode') == '0':	# Stream Only
+        qual = _settings.getSetting('quality')
+        url  = song.audioUrl[qual]['audioUrl']
+        panQueue(song, url)
+
+    else:					# Cache / Save
         panFetch(song, m4a)
 
 
@@ -335,12 +342,13 @@ def panLoop():
             if _playlist.getposition() >= 0:
                 if _playlist[_playlist.getposition()].getProperty(_plugin) == _stamp:
                     panCheck()
+                    _lock.release()
                     panExpire()
+
                 else: 	# not our song in playlist, exit
                     _lock.release()
                     break	
         except: pass
-        _lock.release()
 
 
 
