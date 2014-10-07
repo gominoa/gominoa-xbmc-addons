@@ -255,7 +255,6 @@ def panFill():
     if not panAuth():
         if type(_station) is not Station: str = "%s.Fill NOAUTH (%s)" % _station[0]
         else:                             str = "%s.Fill NOAUTH (%s) '%s'" % (_station.id, _station.name)
-
         xbmc.log(str, xbmc.LOGWARNING)
         return
 
@@ -275,21 +274,22 @@ def panFill():
 
 
 def panPlay():
-    _lock.acquire()
-    threading.Thread(target = panFill).start()
-
-    li = xbmcgui.ListItem(_station.name)
+    li = xbmcgui.ListItem(_station[0])
     li.setPath('special://home/addons/' + _plugin + '/empty.mp3')
     li.setProperty(_plugin, _stamp)
 
+    _lock.acquire()
     start = time.time()
+    threading.Thread(target = panFill).start()
 
     while not _play:
         if xbmc.abortRequested:
             _lock.release()
             exit()
     
+        time.sleep(0.01)
         xbmc.sleep(1000)
+
         if (threading.active_count() == 1) or ((time.time() - start) >= 60):
             xbmc.log("%s.Play BAD (%13s, %ds)" % (_plugin, _stamp, time.time() - start))
             xbmcgui.Dialog().ok(_name, 'No Tracks Received', '', 'Try again later')
