@@ -1,6 +1,6 @@
 import httplib, os, shutil, threading, time, urllib, urlparse
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin
-from pithos import *
+from pithos.pithos import *
 from mutagen.mp4 import MP4
 import musicbrainzngs as _brain
 
@@ -81,7 +81,7 @@ def panTag(song, path):
         tag['\xa9nam'] = song.title
 
         tag.save()
-        xbmc.log("%s.Tag   OK (%s,%7s%%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
+        xbmc.log("%s.Tag OK   (%s,%7s%%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
         return True
     else:
         xbmc.log("%s.Tag FAIL (%s,%7s%%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
@@ -115,7 +115,7 @@ def panQueue(song, path):
     track = _track
     _track += 1
     
-    xbmc.log("%s.Queue (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
+    xbmc.log("%s.Queue    (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
 
     li = xbmcgui.ListItem(_station.name)
     li.setProperty(_plugin, _stamp)
@@ -174,7 +174,7 @@ def panFetch(song, path):
     file.close()
     if totl <= isad:		# looks like an ad
         if skip == 'true':
-            xbmc.log("%s.Fetch SKIP (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
+            xbmc.log("%s.Fetch AD (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
             os.remove(path)
         elif qued == False:
             song.artist = song.album = song.title = 'Advertisement'        
