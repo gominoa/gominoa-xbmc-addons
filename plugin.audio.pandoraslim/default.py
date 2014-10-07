@@ -187,7 +187,7 @@ def panFetch(song, path):
         file.write(data)
         totl += len(data)
 
-        if (not qued) and ((skip == 'false') or (size > isad)):
+        if (not qued) and (size > isad):
             wait = int(_settings.getSetting('delay'))
             threading.Timer(wait, panQueue, (song, path)).start()
             qued = True
@@ -283,14 +283,16 @@ def panPlay():
     threading.Thread(target = panFill).start()
 
     while not _play:
-        if xbmc.abortRequested:
-            _lock.release()
-            exit()
-    
         time.sleep(0.01)
         xbmc.sleep(1000)
 
+        if xbmc.abortRequested:
+            _lock.release()
+            exit()
+
         if (threading.active_count() == 1) or ((time.time() - start) >= 60):
+            if _play: break	# check one last time before we bail
+
             xbmc.log("%s.Play BAD (%13s, %ds)" % (_plugin, _stamp, time.time() - start))
             xbmcgui.Dialog().ok(_name, 'No Tracks Received', '', 'Try again later')
             exit()
