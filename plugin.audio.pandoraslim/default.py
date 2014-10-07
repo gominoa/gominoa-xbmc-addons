@@ -1,4 +1,4 @@
-import httplib, os, shutil, threading, time, urllib, urlparse
+import httplib, os, shutil, threading, time, urllib, urllib2, urlparse
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin
 import musicbrainzngs as _brain
 from mutagen.mp4 import MP4
@@ -30,7 +30,30 @@ _play     = False
 
 
 
+def panProxy():
+    if _settings.getSetting('proxy')   == '0':	# Global
+        open = urllib2.build_opener()
+
+    elif _settings.getSetting('proxy') == '1':	# None
+        hand = urllib2.ProxyHandler({})
+        open = urllib2.build_opener(hand)
+
+    elif _settings.getSetting('proxy') == '2':	# Custom
+        host = _settings.getSetting('proxy_host')
+        port = _settings.getSetting('proxy_port')
+        user = _settings.getSetting('proxy_user')
+        word = _settings.getSetting('proxy_pass')
+
+        prox = "http://%s:%s@%s:%s" % (user, word, host, port)
+        hand = urllib2.ProxyHandler({ 'http' : prox })
+        open = urllib2.build_opener(hand)
+
+    _pandora.set_url_opener(open)
+
+
 def panAuth():
+    panProxy()
+
     one  = _settings.getSetting('pandoraone')
     name = _settings.getSetting('username')
     word = _settings.getSetting('password')
@@ -46,7 +69,7 @@ def panAuth():
 
 def panDir():
     while not panAuth():
-        if xbmcgui.Dialog().yesno(_name, 'Login Failed', '', 'Check username/password and try again?'):
+        if xbmcgui.Dialog().yesno(_name, '          Login Failed', 'Bad User / Pass / Proxy', '       Check Settings?'):
             _settings.openSettings()
         else: exit()
 
