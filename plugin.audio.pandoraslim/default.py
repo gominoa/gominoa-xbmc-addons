@@ -265,7 +265,7 @@ def panFill():
     except (PandoraTimeout, PandoraNetError): pass
     except (PandoraAuthTokenInvalid, PandoraAPIVersionError, PandoraError) as e:
         xbmcgui.Dialog().ok(_name, e.message, '', e.submsg)
-        exit()
+        return
 
     for song in songs:
         song = panStrip(song)
@@ -276,7 +276,7 @@ def panFill():
 
 def panPlay():
     _lock.acquire()
-    panFill()
+    threading.Thread(target = panFill).start()
 
     li = xbmcgui.ListItem(_station.name)
     li.setPath('special://home/addons/' + _plugin + '/empty.mp3')
@@ -309,7 +309,7 @@ def panPlay():
 
 def panCheck():
     if (threading.active_count() == 1) and ((_playlist.size() - _playlist.getposition()) <= 1):
-        panFill()
+        threading.Thread(target = panFill).start()
 
     while (_playlist.size() > int(_settings.getSetting('listmax'))) and (_playlist.getposition() > 0):
         xbmc.executeJSONRPC('{"jsonrpc":"2.0", "id":1, "method":"Playlist.Remove", "params":{"playlistid":' + str(xbmc.PLAYLIST_MUSIC) + ', "position":0}}')
