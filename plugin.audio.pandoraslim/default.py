@@ -336,7 +336,9 @@ def panLoop():
                 if _playlist[_playlist.getposition()].getProperty(_plugin) == _stamp:
                     panCheck()
                     panExpire()
-                else: break	# not our song in playlist, exit
+                else: 	# not our song in playlist, exit
+                    _lock.release()
+                    break	
         except: pass
         _lock.release()
 
