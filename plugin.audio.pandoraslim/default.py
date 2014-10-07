@@ -35,10 +35,8 @@ def panAuth():
     name = _settings.getSetting('username')
     word = _settings.getSetting('password')
 
-    try:
-        _pandora.connect(one, name, word)
-    except PandoraError, e:
-        return 0;
+    try: _pandora.connect(one, name, word)
+    except PandoraError, e: return 0;
     return 1
 
 
@@ -141,6 +139,7 @@ def panQueue(song, path):
 def panFetch(song, path):
     totl = 0
     qued = False
+
     skip = _settings.getSetting('skip');
     isad = int(_settings.getSetting('isad')) * 1024
     qual = _settings.getSetting('quality')
@@ -184,8 +183,7 @@ def panFetch(song, path):
             path = path2
             panQueue(song, path)
 
-    else:
-        panSave(song, path)
+    else: panSave(song, path)
 
 
 def panSong(song):
@@ -194,6 +192,7 @@ def panSong(song):
 
     lib = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.m4a" % (_settings.getSetting('lib'), song.artist, song.artist, song.album, song.artist, song.title))).decode("utf-8")
     m4a = xbmc.translatePath(("%s/%s.m4a"                 % (_settings.getSetting('m4a'), song.songId))                                                  ).decode("utf-8")
+
     if os.path.isfile(lib):
         xbmc.log("%s.Song LIB (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
         panQueue(song, lib)
@@ -228,8 +227,7 @@ def panFill():
 
     if type(_station) is not Station: _station = _pandora.get_station_by_id(_station[0])
 
-    try:
-        songs = _station.get_playlist()
+    try: songs = _station.get_playlist()
     except (PandoraTimeout, PandoraNetError): pass
     except (PandoraAuthTokenInvalid, PandoraAPIVersionError, PandoraError) as e:
         xbmcgui.Dialog().ok(_name, e.message, '', e.submsg)
@@ -307,19 +305,16 @@ def panLoop():
                     panExpire()
                 else: break	# not our song in playlist, exit
         except: pass
+
         _lock.release()
-
-
-def panThumb():
-    img = xbmcgui.Dialog().browseSingle(2, 'Select Thumb', 'files', useThumbs = True)
-    _settings.setSetting("img-%s" % _thumb[0], img)
-    xbmc.executebuiltin("Container.Refresh")
 
 
 
 # main
 if _thumb is not None:
-    panThumb()
+    img = xbmcgui.Dialog().browseSingle(2, 'Select Thumb', 'files', useThumbs = True)
+    _settings.setSetting("img-%s" % _thumb[0], img)
+    xbmc.executebuiltin("Container.Refresh")
 
 elif _station is not None:
     for dir in [ 'm4a', 'lib' ]:
@@ -332,6 +327,4 @@ elif _station is not None:
     panLoop()
     xbmc.log("%s.Exit" % _plugin)
 
-
-else:
-    panDir()
+else: panDir()
