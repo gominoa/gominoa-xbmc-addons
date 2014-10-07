@@ -1,8 +1,8 @@
 import httplib, os, shutil, threading, time, urllib, urlparse
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin
-from pithos.pithos import *
-from mutagen.mp4 import MP4
 import musicbrainzngs as _brain
+from mutagen.mp4 import MP4
+from pithos.pithos import *
 
 
 
@@ -36,8 +36,12 @@ def panAuth():
     word = _settings.getSetting('password')
 
     try: _pandora.connect(one, name, word)
-    except PandoraError, e: return 0;
-    return 1
+    except PandoraError, e:
+        xbmc.log("%s.Auth BAD" % _plugin, xbmc.LOGDEBUG)
+        return False;
+
+    xbmc.log("%s.Auth  OK" % _plugin, xbmc.LOGDEBUG)
+    return True
 
 
 def panDir():
@@ -66,6 +70,7 @@ def panDir():
         xbmcplugin.addDirectoryItem(_handle, "%s?station=%s" % (_base, station.id), li)
 
     xbmcplugin.endOfDirectory(_handle, cacheToDisc = False)
+    xbmc.log("%s.Dir   OK" % _plugin, xbmc.LOGDEBUG)
 
 
 def panTag(song, path):
@@ -81,16 +86,15 @@ def panTag(song, path):
         tag['\xa9nam'] = song.title
 
         tag.save()
-        xbmc.log("%s.Tag OK   (%s,%7s%%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
+        xbmc.log("%s.Tag   OK (%s,%6s %%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
         return True
     else:
-        xbmc.log("%s.Tag FAIL (%s,%7s%%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
+        xbmc.log("%s.Tag FAIL (%s,%6s %%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
         return False
 
 
 def panSave(song, path):
     if _settings.getSetting('save') != 'true': return
-    xbmc.log("%s.Save (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title), xbmc.LOGDEBUG)
 
     tmp = "%s.temp" % (path)
     shutil.copyfile(path, tmp)
@@ -109,13 +113,13 @@ def panSave(song, path):
 
     else: os.remove(tmp)
 
+    xbmc.log("%s.Save  OK (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title), xbmc.LOGDEBUG)
+
 
 def panQueue(song, path):
     global _track, _play
     track = _track
     _track += 1
-    
-    xbmc.log("%s.Queue    (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
 
     li = xbmcgui.ListItem(_station.name)
     li.setProperty(_plugin, _stamp)
@@ -134,6 +138,8 @@ def panQueue(song, path):
 
     if not _settings.getSetting("img-%s" % song.stationId):
         _settings.setSetting("img-%s" % song.stationId, song.artUrl)
+
+    xbmc.log("%s.Queue OK (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
 
 
 def panFetch(song, path):
@@ -174,7 +180,7 @@ def panFetch(song, path):
     file.close()
     if totl <= isad:		# looks like an ad
         if skip == 'true':
-            xbmc.log("%s.Fetch AD (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
+            xbmc.log("%s.Fetch AD (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
             os.remove(path)
         elif qued == False:
             song.artist = song.album = song.title = 'Advertisement'        
@@ -194,10 +200,10 @@ def panSong(song):
     m4a = xbmc.translatePath(("%s/%s.m4a"                 % (_settings.getSetting('m4a'), song.songId))                                                  ).decode("utf-8")
 
     if os.path.isfile(lib):
-        xbmc.log("%s.Song LIB (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
+        xbmc.log("%s.Song LIB (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
         panQueue(song, lib)
     elif os.path.isfile(m4a):
-        xbmc.log("%s.Song M4A (%s) '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
+        xbmc.log("%s.Song M4A (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
         panQueue(song, m4a)
     else:
         panFetch(song, m4a)
@@ -218,10 +224,9 @@ def panFill():
     global _station
 
     if not panAuth():
-        if type(_station) is not Station:
-            str = "%s.Play NOAUTH (%s)" % _station[0]
-        else:
-            str = "%s.Play NOAUTH (%s) '%s'" % (_station.id, _station.name)
+        if type(_station) is not Station: str = "%s.Fill NOAUTH (%s)" % _station[0]
+        else:                             str = "%s.Fill NOAUTH (%s) '%s'" % (_station.id, _station.name)
+
         xbmc.log(str, xbmc.LOGWARNING)
         return
 
@@ -233,16 +238,14 @@ def panFill():
         xbmcgui.Dialog().ok(_name, e.message, '', e.submsg)
         exit()
 
-    xbmc.log("%s.Fill (%s, %d) '%s'" % (_plugin, _station.id, len(songs), _station.name), xbmc.LOGDEBUG)
-
     for song in songs:
         song = panStrip(song)
-        threading.Thread(target = panSong, args = (song,)).start()
+        threading.Timer(0.01, panSong, (song,)).start()
+
+    xbmc.log("%s.Fill  OK (%s,%8d)          '%s'" % (_plugin, _station.id, len(songs), _station.name), xbmc.LOGDEBUG)
 
 
 def panPlay():
-    xbmc.log("%s.Play (%s, %s)" % (_plugin, _stamp, _station[0]))
-
     _lock.acquire()
     panFill()
 
@@ -255,7 +258,7 @@ def panPlay():
     while not _play:
         xbmc.sleep(1000)
         if (_pend == 0) or ((time.time() - start) >= 60):
-            xbmc.log("%s.Play: NO SONGS (%s, %d, %ds)" % (_plugin, _stamp, _pend, time.time() - start))
+            xbmc.log("%s.Play BAD (%13s, %d, %ds)" % (_plugin, _stamp, _pend, time.time() - start))
             xbmcgui.Dialog().ok(_name, 'No Tracks Received', '', 'Try again later')
             exit()
 
@@ -267,6 +270,8 @@ def panPlay():
     xbmcplugin.setResolvedUrl(_handle, True, li)
     _player.play(_playlist)
     xbmc.executebuiltin('ActivateWindow(10500)')
+
+    xbmc.log("%s.Play  OK (%13s,%27s) '%s'" % (_plugin, _stamp, _station.id, _station.name))
 
 
 def panCheck():
@@ -290,7 +295,7 @@ def panExpire():
         if regx.match(file):
             file = "%s/%s" % (m4a, file)
             if os.stat(file).st_mtime < (time.time() - exp):
-                xbmc.log("%s.Expire (%s)" % (_plugin, file), xbmc.LOGDEBUG)
+                xbmc.log("%s.Expire   (%s)" % (_plugin, file), xbmc.LOGDEBUG)
                 os.remove(file)
 
 
@@ -326,6 +331,6 @@ elif _station is not None:
 
     panPlay()
     panLoop()
-    xbmc.log("%s.Exit (%s)" % (_plugin, _stamp))
+    xbmc.log("%s.Exit     (%13s)" % (_plugin, _stamp))
 
 else: panDir()
