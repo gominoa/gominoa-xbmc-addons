@@ -48,12 +48,13 @@ def panDir():
             _settings.openSettings()
         else: exit()
 
-    station = _pandora.stations.pop(0)								# Quickmix
     sort = _settings.getSetting('sort')
-    if   sort == '0':	stations = _pandora.stations						# Normal
-    elif sort == '2':	stations = _pandora.stations[::-1]					# Reverse
-    else:		stations = sorted(_pandora.stations, key=lambda station: station.name)	# A-Z
-    _pandora.stations.insert(0, station)							# Quickmatch back on top
+    stations = _pandora.stations
+    quickmix = stations.pop(0)							# Quickmix
+    if   sort == '0':	stations = stations					# Normal
+    elif sort == '2':	stations = stations[::-1]				# Reverse
+    else:		stations = sorted(stations, key=lambda s: s.name)	# A-Z
+    stations.insert(0, quickmix)						# Quickmix back on top
 
     for station in stations:
         li = xbmcgui.ListItem(station.name, station.id)
@@ -94,11 +95,6 @@ def panSave(song, path):
     panTag(song, tmp)
 
     lib = xbmc.translatePath(_settings.getSetting('lib')).decode("utf-8")
-
-    badc        = '\/?%*:|"<>.'		# remove bad filename chars
-    song.artist = ''.join(c for c in song.artist if c not in badc)
-    song.album  = ''.join(c for c in song.album  if c not in badc)
-    song.title  = ''.join(c for c in song.title  if c not in badc)
 
     art = "%s/%s/folder.jpg" % (lib, song.artist)
     alb = "%s/%s/%s - %s/folder.jpg" % (lib, song.artist, song.artist, song.album)
@@ -207,6 +203,15 @@ def panSong(song):
     _pend -= 1
 
 
+def panStrip(song):
+    badc        = '\/?%*:|"<>.'		# remove bad filename chars
+    song.artist = ''.join(c for c in song.artist if c not in badc)
+    song.album  = ''.join(c for c in song.album  if c not in badc)
+    song.title  = ''.join(c for c in song.title  if c not in badc)
+
+    return song
+
+
 def panFill():
     global _station
 
@@ -230,6 +235,7 @@ def panFill():
     xbmc.log("%s.Fill (%s, %d) '%s'" % (_plugin, _station.id, len(songs), _station.name), xbmc.LOGDEBUG)
 
     for song in songs:
+        song = panStrip(song)
         threading.Thread(target = panSong, args = (song,)).start()
 
 
