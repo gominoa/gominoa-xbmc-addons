@@ -319,16 +319,16 @@ class Song(object):
 
         self.songId = d['songIdentity'] #.decode("utf-8")
         self.stationId = d['stationId']
-        self.audioUrlMap = d['audioUrlMap']
 
-        try:
-            self.audioUrl = {}
-            self.audioUrl['0'] = d['audioUrlMap']['lowQuality']
-            self.audioUrl['1'] = d['audioUrlMap']['mediumQuality']
-            self.audioUrl['2'] = d['audioUrlMap']['highQuality']
-        except KeyError:
-            pass        
+#        try:
+        self.audioUrl = {}
+        self.audioUrl['0'] = d['audioUrlMap']['lowQuality']['audioUrl']
+        self.audioUrl['1'] = d['audioUrlMap']['mediumQuality']['audioUrl']
+        self.audioUrl['2'] = d['audioUrlMap']['highQuality']['audioUrl']
+#        except KeyError:
+#            pass        
 
+#        self.audioUrlMap = d['audioUrlMap']
 #        self.trackToken = d['trackToken']
 #        self.songDetailURL = d['songDetailUrl']
 #        self.songExplorerUrl = d['songExplorerUrl']
@@ -343,9 +343,9 @@ class Song(object):
 #        self.feedbackId = None
 
 
-    @property
-    def station(self):
-        return self.pandora.get_station_by_id(self.stationId)
+#    @property
+#    def station(self):
+#        return self.pandora.get_station_by_id(self.stationId)
 
 #    @property
 #    def valid(self):

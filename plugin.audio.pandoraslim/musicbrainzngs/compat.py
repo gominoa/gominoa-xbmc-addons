@@ -49,14 +49,14 @@ if is_py2:
 	bytes = str
 	unicode = unicode
 	basestring = basestring
-elif is_py3:
-	from io import StringIO
-	from urllib.request import HTTPPasswordMgr, HTTPDigestAuthHandler, Request,\
-								HTTPHandler, build_opener
-	from urllib.error import HTTPError, URLError
-	from http.client import HTTPException, BadStatusLine
-	from urllib.parse import urlunparse, urlencode
-
-	unicode = str
-	bytes = bytes
-	basestring = (str,bytes)
+#elif is_py3:
+#	from io import StringIO
+#	from urllib.request import HTTPPasswordMgr, HTTPDigestAuthHandler, Request,\
+#								HTTPHandler, build_opener
+#	from urllib.error import HTTPError, URLError
+#	from http.client import HTTPException, BadStatusLine
+#	from urllib.parse import urlunparse, urlencode
+#
+#	unicode = str
+#	bytes = bytes
+#	basestring = (str,bytes)

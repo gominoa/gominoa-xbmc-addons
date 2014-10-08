@@ -108,10 +108,10 @@ def panTag(song, path):
         tag['\xa9nam'] = song.title
 
         tag.save()
-        xbmc.log("%s.Tag   OK (%s,%6s %%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
+        xbmc.log("%s.Tag   OK (%s,%4s %%)   '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
         return True
     else:
-        xbmc.log("%s.Tag FAIL (%s,%6s %%) '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
+        xbmc.log("%s.Tag FAIL (%s,%4s %%)   '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
         return False
 
 
@@ -168,7 +168,7 @@ def panFetch(song, path):
     skip = _settings.getSetting('skip');
     isad = int(_settings.getSetting('isad')) * 1024
     qual = _settings.getSetting('quality')
-    url  = urlparse.urlsplit(song.audioUrl[qual]['audioUrl'])
+    url  = urlparse.urlsplit(song.audioUrl[qual])
 
     conn = httplib.HTTPConnection(url.netloc)
     conn.request('GET', "%s?%s" % (url.path, url.query))
@@ -233,7 +233,7 @@ def panSong(song):
 
     elif _settings.getSetting('mode') == '0':	# Stream Only
         qual = _settings.getSetting('quality')
-        url  = song.audioUrl[qual]['audioUrl']
+        url  = song.audioUrl[qual]
         panQueue(song, url)
 
     else:					# Cache / Save
@@ -306,7 +306,7 @@ def panPlay():
     _player.play(_playlist)
     xbmc.executebuiltin('ActivateWindow(10500)')
 
-    xbmc.log("%s.Play  OK (%13s,%27s) '%s'" % (_plugin, _stamp, _station.id, _station.name))
+    xbmc.log("%s.Play  OK (%13s,%20s)        '%s'" % (_plugin, _stamp, _station.id, _station.name))
 
 
 def panCheck():
