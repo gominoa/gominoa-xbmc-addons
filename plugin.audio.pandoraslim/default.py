@@ -162,14 +162,12 @@ def panQueue(song, path):
 
 
 def panFetch(song, path):
-    totl = 0
-    qued = False
-
-    skip = _settings.getSetting('skip');
     isad = int(_settings.getSetting('isad')) * 1024
+    wait = int(_settings.getSetting('delay'))
     qual = _settings.getSetting('quality')
-    url  = urlparse.urlsplit(song.audioUrl[qual])
+    skip = _settings.getSetting('skip')
 
+    url  = urlparse.urlsplit(song.audioUrl[qual])
     conn = httplib.HTTPConnection(url.netloc)
     conn.request('GET', "%s?%s" % (url.path, url.query))
     strm = conn.getresponse()
@@ -181,37 +179,39 @@ def panFetch(song, path):
 
     xbmc.log("%s.Fetch %s (%s,%8d) '%s - %s'" % (_plugin, strm.reason, song.songId, size, song.artist, song.title))
 
+    totl = 0
+    qued = False
     file = open(path, 'wb', 0)
-    data = strm.read(8192) 
-    while (data) and (totl < size):
+
+    while (totl < size) and (not xbmc.abortRequested):
+        try: data = strm.read(4096)
+        except:
+            xbmc.log("%s.Fetch TIMEOUT (%s,%8d) '%s - %s'" % (_plugin, song.songId, totl, song.artist, song.title)) #, xbmc.LOGDEBUG)
+            break
+
         file.write(data)
         totl += len(data)
 
         if (not qued) and (size > isad):
-            wait = int(_settings.getSetting('delay'))
             threading.Timer(wait, panQueue, (song, path)).start()
             qued = True
 
-        if (totl >= size) or xbmc.abortRequested: break
-
-        try: data = strm.read(8192)
-        except: xbmc.log("%s.Fetch TIMEOUT (%s,%8d) '%s - %s'" % (_plugin, song.songId, totl, song.artist, song.title)) #, xbmc.LOGDEBUG)
-
     file.close()
+    conn.close()
     
     if totl < size:		# incomplete file
         xbmc.log("%s.Fetch RM (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
         os.remove(path)
-    elif totl <= isad:		# looks like an ad
+    elif size <= isad:		# looks like an ad
         if skip == 'true':
             xbmc.log("%s.Fetch AD (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
             os.remove(path)
-        elif qued == False:
+
+        elif qued == False:	# play it anyway
             song.artist = song.album = song.title = 'Advertisement'        
-            path2 = path + '.ad.m4a'
-            os.renames(path, path2)
-            path = path2
-            panQueue(song, path)
+            dest = path + '.ad.m4a'
+            os.renames(path, dest)
+            panQueue(song, dest)
 
     else: panSave(song, path)
 
@@ -335,9 +335,8 @@ def panExpire():
 
 
 def panLoop():
-    while True:
+    while (not xbmc.abortRequested):
         xbmc.sleep(5000)
-        if xbmc.abortRequested: break
 
         _lock.acquire()
         try:
