@@ -26,6 +26,7 @@ _lock     = threading.Lock()
 _stamp    = str(time.time())
 _track    = 1
 _play     = False
+_high     = 0.0
 
 
 
@@ -108,10 +109,10 @@ def panTag(song, path):
         tag['\xa9nam'] = song.title
 
         tag.save()
-        xbmc.log("%s.Tag   OK (%s,%4s %%)   '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
+        xbmc.log("%s.Tag   OK (%13s,%4s %%)    '%s - %s - %s'" % (_plugin, _stamp, sco, song.songId[:4], song.artist, song.title))
         return True
     else:
-        xbmc.log("%s.Tag FAIL (%s,%4s %%)   '%s - %s'" % (_plugin, song.songId, sco, song.artist, song.title))
+        xbmc.log("%s.Tag FAIL (%13s,%4s %%)    '%s - %s - %s'" % (_plugin, _stamp, sco, song.songId[:4], song.artist, song.title))
         return False
 
 
@@ -131,12 +132,14 @@ def panSave(song, path):
         xbmcvfs.mkdirs(dir)
         xbmcvfs.rename(tmp, dst)
 
-        if not xbmcvfs.exists(alb): urllib.urlretrieve(song.artUrl, alb)
-        if not xbmcvfs.exists(art): urllib.urlretrieve(song.artUrl, art)
+        try:
+            if not xbmcvfs.exists(alb): urllib.urlretrieve(song.artUrl, alb)
+            if not xbmcvfs.exists(art): urllib.urlretrieve(song.artUrl, art)
+        except: pass
 
     else: xbmcvfs.delete(tmp)
 
-    xbmc.log("%s.Save  OK (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title), xbmc.LOGDEBUG)
+    xbmc.log("%s.Save  OK (%13s) '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title), xbmc.LOGDEBUG)
 
 
 def panQueue(song, path):
@@ -154,36 +157,42 @@ def panQueue(song, path):
     _playlist.add(path, li)
     _lock.release()
 
-    xbmc.log("%s.Queue OK (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
+    xbmc.log("%s.Queue OK (%13s)           '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title)) #, xbmc.LOGDEBUG)
 
 
 def panFetch(song, path):
+    global _high
+
     isad = int(_settings.getSetting('isad')) * 1024
     wait = int(_settings.getSetting('delay'))
     qual = _settings.getSetting('quality')
     skip = _settings.getSetting('skip')
 
     url  = urlparse.urlsplit(song.audioUrl[qual])
-    conn = httplib.HTTPConnection(url.netloc, timeout = 600)
+    conn = httplib.HTTPConnection(url.netloc, timeout = 9)
     conn.request('GET', "%s?%s" % (url.path, url.query))
     strm = conn.getresponse()
     size = int(strm.getheader('content-length'))
 
     if size in (341980, 173310): # empty song cause requesting to fast
-        xbmc.log("%s.Fetch EMPTY (%s,%8d) '%s - %s'" % (_plugin, song.songId, size, song.artist, song.title)) #, xbmc.LOGDEBUG)
+        xbmc.log("%s.Fetch MT (%13s,%8d)  '%s - %s - %s'" % (_plugin, _stamp, size, song.songId[:4], song.artist, song.title)) #, xbmc.LOGDEBUG)
         return
 
-    xbmc.log("%s.Fetch %s (%s,%8d) '%s - %s'" % (_plugin, strm.reason, song.songId, size, song.artist, song.title))
+    xbmc.log("%s.Fetch %s (%13s,%8d)  '%s - %s - %s'" % (_plugin, strm.reason, _stamp, size, song.songId[:4], song.artist, song.title))
 
     totl = 0
     qued = False
+    last = time.time()
     file = open(path, 'wb', 0)
 
     while (totl < size) and (not xbmc.abortRequested):
         try: data = strm.read(min(4096, size - totl))
         except:
-            xbmc.log("%s.Fetch TIMEOUT (%s,%8d) '%s - %s'" % (_plugin, song.songId, totl, song.artist, song.title)) #, xbmc.LOGDEBUG)
+            xbmc.log("%s.Fetch TO (%13s,%8d)  '%s - %s - %s'" % (_plugin, _stamp, totl, song.songId[:4], song.artist, song.title)) #, xbmc.LOGDEBUG)
             break
+
+        if _high < (time.time() - last): _high = time.time() - last
+        last = time.time()
 
         file.write(data)
         totl += len(data)
@@ -196,11 +205,11 @@ def panFetch(song, path):
     conn.close()
     
     if totl < size:		# incomplete file
-        xbmc.log("%s.Fetch RM (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
+        xbmc.log("%s.Fetch RM (%13s)           '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title)) #, xbmc.LOGDEBUG)
         xbmcvfs.delete(path)
     elif size <= isad:		# looks like an ad
         if skip == 'true':
-            xbmc.log("%s.Fetch AD (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title)) #, xbmc.LOGDEBUG)
+            xbmc.log("%s.Fetch AD (%13s)           '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title)) #, xbmc.LOGDEBUG)
             xbmcvfs.delete(path)
 
         elif qued == False:	# play it anyway
@@ -220,15 +229,15 @@ def panSong(song):
         _settings.setSetting("img-%s" % song.stationId, song.artUrl)
 
     if xbmcvfs.exists(lib):			# Found in Library
-        xbmc.log("%s.Song LIB (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
+        xbmc.log("%s.Song LIB (%13s)           '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title))
         panQueue(song, lib)
 
     elif xbmcvfs.exists(m4a):			# Found in Cache
-        xbmc.log("%s.Song M4A (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
+        xbmc.log("%s.Song M4A (%13s)           '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title))
         panQueue(song, m4a)
 
     elif _settings.getSetting('mode') == '0':	# Stream Only
-        xbmc.log("%s.Song PAN (%s)          '%s - %s'" % (_plugin, song.songId, song.artist, song.title))
+        xbmc.log("%s.Song PAN (%13s)           '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title))
         qual = _settings.getSetting('quality')
         panQueue(song, song.audioUrl[qual])
 
@@ -266,7 +275,7 @@ def panFill():
         song = panStrip(song)
         threading.Timer(0.01, panSong, (song,)).start()
 
-    xbmc.log("%s.Fill  OK (%s,%8d)          '%s'" % (_plugin, _station.id, len(songs), _station.name), xbmc.LOGDEBUG)
+    xbmc.log("%s.Fill  OK (%13s,%8d)          '%s - %s'" % (_plugin, _stamp, len(songs), _station.id[-4:], _station.name), xbmc.LOGDEBUG)
 
 
 def panPlay():
@@ -303,7 +312,7 @@ def panPlay():
     _player.play(_playlist)
     xbmc.executebuiltin('ActivateWindow(10500)')
 
-    xbmc.log("%s.Play  OK (%13s,%20s)        '%s'" % (_plugin, _stamp, _station.id, _station.name))
+    xbmc.log("%s.Play  OK (%13s)           '%s - %s'" % (_plugin, _stamp, _station.id[-4:], _station.name))
 
 
 def panCheck():
@@ -331,7 +340,7 @@ def panExpire():
             file = "%s/%s" % (m4a, file)
 
             if xbmcvfs.Stat(file).st_mtime() < exp:
-                xbmc.log("%s.Expire   (%s)" % (_plugin, file), xbmc.LOGDEBUG)
+                xbmc.log("%s.Expire   (%13s) '%s'" % (_plugin, _stamp, file), xbmc.LOGDEBUG)
                 xbmcvfs.delete(file)
 
 
@@ -339,7 +348,7 @@ def panExpire():
 def panLoop():
     while (not xbmc.abortRequested):
         xbmc.sleep(int(_settings.getSetting('delay')) * 1000 + 1000)
-        xbmc.log("%s.Loop     (%13s,%2s Threads)                  '%s'" % (_plugin, _stamp, threading.active_count(), _station.name))
+        xbmc.log("%s.Loop%4d (%13s, %f) '%s - %s'" % (_plugin, threading.active_count(), _stamp, _high, _station.id[-4:], _station.name)) #, xbmc.LOGDEBUG)
 
         _lock.acquire()
         try:
@@ -372,6 +381,6 @@ elif _station is not None:
     panPlay()
     panLoop()
 
-    xbmc.log("%s.Exit     (%13s)" % (_plugin, _stamp))
+    xbmc.log("%s.Exit     (%13s, %f)" % (_plugin, _stamp, _high))
 
 else: panDir()
