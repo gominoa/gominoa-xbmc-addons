@@ -1,4 +1,4 @@
-import httplib, threading, time, urllib, urllib2, urlparse
+import httplib, socket, threading, time, urllib, urllib2, urlparse
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin, xbmcvfs
 import musicbrainzngs as _brain
 from mutagen.mp4 import MP4
@@ -132,10 +132,10 @@ def panSave(song, path):
         xbmcvfs.mkdirs(dir)
         xbmcvfs.rename(tmp, dst)
 
-        try:
-            if not xbmcvfs.exists(alb): urllib.urlretrieve(song.artUrl, alb)
-            if not xbmcvfs.exists(art): urllib.urlretrieve(song.artUrl, art)
-        except: pass
+#        try:
+        if not xbmcvfs.exists(alb): urllib.urlretrieve(song.artUrl, alb)
+        if not xbmcvfs.exists(art): urllib.urlretrieve(song.artUrl, art)
+#        except socket.IOError: pass
 
     else: xbmcvfs.delete(tmp)
 
@@ -157,7 +157,16 @@ def panQueue(song, path):
     _playlist.add(path, li)
     _lock.release()
 
-    xbmc.log("%s.Queue OK (%13s)           '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title)) #, xbmc.LOGDEBUG)
+    xbmc.log("%s.Queue OK (%13s)           '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title), xbmc.LOGDEBUG)
+
+
+def panMsg(song, msg):
+    song.title = msg
+    song.artist = 'Pandora'
+    song.artUrl = "special://home/addons/%s/icon.png" % _plugin
+    song.album = song.rating = None
+
+    panQueue(song, "special://home/addons/%s/silent.m4a" % _plugin)
 
 
 def panFetch(song, path):
@@ -175,7 +184,8 @@ def panFetch(song, path):
     size = int(strm.getheader('content-length'))
 
     if size in (341980, 173310): # empty song cause requesting to fast
-        xbmc.log("%s.Fetch MT (%13s,%8d)  '%s - %s - %s'" % (_plugin, _stamp, size, song.songId[:4], song.artist, song.title)) #, xbmc.LOGDEBUG)
+        xbmc.log("%s.Fetch MT (%13s,%8d)  '%s - %s - %s'" % (_plugin, _stamp, size, song.songId[:4], song.artist, song.title), xbmc.LOGDEBUG)
+        panMsg(song, 'To Many Songs Requested')
         return
 
     xbmc.log("%s.Fetch %s (%13s,%8d)  '%s - %s - %s'" % (_plugin, strm.reason, _stamp, size, song.songId[:4], song.artist, song.title))
@@ -187,8 +197,8 @@ def panFetch(song, path):
 
     while (totl < size) and (not xbmc.abortRequested):
         try: data = strm.read(min(4096, size - totl))
-        except:
-            xbmc.log("%s.Fetch TO (%13s,%8d)  '%s - %s - %s'" % (_plugin, _stamp, totl, song.songId[:4], song.artist, song.title)) #, xbmc.LOGDEBUG)
+        except socket.timeout:
+            xbmc.log("%s.Fetch TO (%13s,%8d)  '%s - %s - %s'" % (_plugin, _stamp, totl, song.songId[:4], song.artist, song.title), xbmc.LOGDEBUG)
             break
 
         if _high < (time.time() - last): _high = time.time() - last
@@ -205,11 +215,11 @@ def panFetch(song, path):
     conn.close()
     
     if totl < size:		# incomplete file
-        xbmc.log("%s.Fetch RM (%13s)           '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title)) #, xbmc.LOGDEBUG)
+        xbmc.log("%s.Fetch RM (%13s)           '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title), xbmc.LOGDEBUG)
         xbmcvfs.delete(path)
     elif size <= isad:		# looks like an ad
         if skip == 'true':
-            xbmc.log("%s.Fetch AD (%13s)           '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title)) #, xbmc.LOGDEBUG)
+            xbmc.log("%s.Fetch AD (%13s)           '%s - %s - %s'" % (_plugin, _stamp, song.songId[:4], song.artist, song.title), xbmc.LOGDEBUG)
             xbmcvfs.delete(path)
 
         elif qued == False:	# play it anyway
@@ -280,12 +290,12 @@ def panFill():
 
 def panPlay():
     li = xbmcgui.ListItem(_station[0])
-    li.setPath('special://home/addons/' + _plugin + '/empty.mp3')
+    li.setPath("special://home/addons/%s/silent.m4a" % _plugin)
     li.setProperty(_plugin, _stamp)
+    li.setProperty('mimetype', 'audio/aac')
 
     _lock.acquire()
     start = time.time()
-#    threading.Thread(target = panFill).start()
     panFill()
 
     while not _play:
@@ -318,7 +328,6 @@ def panPlay():
 def panCheck():
 #    if (threading.active_count() == 1) and 
     if ((_playlist.size() - _playlist.getposition()) <= 2):
-#        threading.Thread(target = panFill).start()
         panFill()
 
     while (_playlist.size() > int(_settings.getSetting('listmax'))) and (_playlist.getposition() > 0):
@@ -346,12 +355,15 @@ def panExpire():
 
 
 def panLoop():
-    while (not xbmc.abortRequested):
-        xbmc.sleep(int(_settings.getSetting('delay')) * 1000 + 1000)
-        xbmc.log("%s.Loop%4d (%13s, %f) '%s - %s'" % (_plugin, threading.active_count(), _stamp, _high, _station.id[-4:], _station.name)) #, xbmc.LOGDEBUG)
+    next = time.time() + int(_settings.getSetting('delay')) + 1
 
-        _lock.acquire()
-        try:
+    while (not xbmc.abortRequested):
+        xbmc.sleep(1000)
+
+        if (time.time() >= next):
+            xbmc.log("%s.Loop%4d (%13s, %f) '%s - %s'" % (_plugin, threading.active_count(), _stamp, _high, _station.id[-4:], _station.name), xbmc.LOGDEBUG)
+
+            _lock.acquire()
             if _playlist.getposition() >= 0:
                 if _playlist[_playlist.getposition()].getProperty(_plugin) == _stamp:
                     panCheck()
@@ -361,7 +373,8 @@ def panLoop():
                 else: 	# not our song in playlist, exit
                     _lock.release()
                     break	
-        except: pass
+
+            next = time.time() + int(_settings.getSetting('delay')) + 1
 
 
 
