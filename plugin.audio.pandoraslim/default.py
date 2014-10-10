@@ -135,7 +135,7 @@ def panSave(song, path):
         try:
             if not xbmcvfs.exists(alb): urllib.urlretrieve(song.artUrl, alb)
             if not xbmcvfs.exists(art): urllib.urlretrieve(song.artUrl, art)
-        except socket.IOError: pass
+        except IOError: pass
 
     else: xbmcvfs.delete(tmp)
 
