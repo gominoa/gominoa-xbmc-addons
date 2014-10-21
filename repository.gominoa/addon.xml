@@ -6,7 +6,7 @@
 		<datadir zip="true">http://raw.github.com/gominoa/gominoa-xbmc-addons/master/repo</datadir>
 	</extension>
 	<extension point="xbmc.addon.metadata">
-		<summary lang="en">Install gominoaa's Addons</summary>
+		<summary lang="en">Install gominoa's Addons</summary>
 		<description lang="en">Download and install addons by gominoa</description>
 		<platform>all</platform>
 	</extension>

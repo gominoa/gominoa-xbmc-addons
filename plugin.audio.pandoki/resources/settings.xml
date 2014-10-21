@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+	<category                                      label="General">
+		<setting id="username"   type="text"   label="Username (email)"/>
+		<setting id="password"   type="text"   label="Password"                                            option="hidden"/>
+		<setting id="pandoraone" type="bool"   label="Pandora One"      default="false"/>
+		<setting                 type="sep"/>
+		<setting id="sort"       type="enum"   label="Sort Stations"    default="0"     values="Newest|A-Z|Oldest"/>
+		<setting id="quality"    type="enum"   label="Audio Quality"    default="2"     values="Low|Medium|High"/>
+		<setting id="mode"       type="enum"   label="Track Handling"   default="0"     values="Stream Only|Save to Library|Cache Only"/>
+		<setting id="skip"       type="bool"   label="Skip Ads"         default="false" visible="!eq(-1,0)"/>
+	</category>
+	<category                                      label="Advanced">
+		<setting id="history"    type="slider" label="Playlist History" default="14"    range="0,1,50"     option="int"/>
+		<setting id="adsize"     type="slider" label="Advert Size"      default="272"   range="8,8,1024"   option="int"/>
+		<setting id="prefetch"   type="slider" label="Track Prefetch"   default="64"    range="8,8,256"    option="int"/>
+		<setting id="expire"     type="slider" label="Cache Hours"      default="3"     range="1,1,24"     option="int"/>
+	</category>
+	<category                                      label="Proxy">
+		<setting id="proxy"      type="enum"   label="Use Proxy"        default="0"     values="Global|None|Custom"/>
+		<setting id="proxy_host" type="text"   label="Server"                           visible="eq(-1,2)"/>
+		<setting id="proxy_port" type="number" label="Port"                             visible="eq(-2,2)"/>
+		<setting id="proxy_user" type="text"   label="Username"                         visible="eq(-3,2)"/>
+		<setting id="proxy_pass" type="text"   label="Password"                         visible="eq(-4,2)" option="hidden"/>
+	</category>
+	<category                                      label="Folders">
+		<setting id="library"    type="folder" label="Library"          default="special://userdata/addon_data/plugin.audio.pandoki/Pandoki"/>
+		<setting id="cache"      type="folder" label="Cache"            default="special://userdata/addon_data/plugin.audio.pandoki/Cache"/>
+	</category>
+</settings>
