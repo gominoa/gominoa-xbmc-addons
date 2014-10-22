@@ -312,7 +312,7 @@ class Pandoki(object):
 
     def Fetch(self, song):
         lib = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.m4a" % (Val('library'), song['artist'], song['artist'], song['album'], song['artist'], song['title']))).decode("utf-8")
-        cch = xbmc.translatePath(("%s/%s.m4a"                 % (Val('cache'), song['id']))                                                                    ).decode("utf-8")
+        cch = xbmc.translatePath(("%s/%s - %s.%s.m4a" % (Val('cache'), song['artist'], song['title'], song['id'][:4]))).decode("utf-8")
 
         if not Val("art-%s" % self.token):	# Set Station Thumb
             Val("art-%s" % self.token, song['art'])
@@ -468,7 +468,7 @@ class Pandoki(object):
     
         cch = xbmc.translatePath(Val('cache')).decode("utf-8")
         exp = time.time() - (float(Val('expire')) * 3600.0)
-        reg = re.compile('^[a-z0-9]{32}\.')
+        reg = re.compile('[a-z0-9]{4}\.m4a')
 
         (dirs, list) = xbmcvfs.listdir(cch)
 
