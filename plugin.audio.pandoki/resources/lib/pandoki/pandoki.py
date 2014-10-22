@@ -49,10 +49,11 @@ class Pandoki(object):
         self.queue	= collections.deque()
         self.track	= 1
         self.wait	= { 'auth' : 0, 'stations' : 0, 'fill' : 0, 'flush' : 0 }
-
         self.silent	= xbmc.translatePath("special://home/addons/%s/resources/media/silent.m4a" % _id)
 
         musicbrainzngs.set_useragent("xbmc.%s" % _id, Val('version'))
+        xbmcvfs.mkdirs(xbmc.translatePath(Val('cache')).decode("utf-8"))
+        xbmcvfs.mkdirs(xbmc.translatePath(Val('library')).decode("utf-8"))
 
 
     def Proxy(self):
@@ -89,20 +90,28 @@ class Pandoki(object):
 
 
     def Stations(self):
-        if (self.stations) and (time.time() < self.wait['stations']): return self.stations
+        if (self.stations) and (time.time() < self.wait['stations']):
+            return self.stations
         if not self.Auth(): return None
 
-        sort = Val('sort')
         stations = self.pithos.get_stations()
-
-        quickmix = stations.pop(0)						# Quickmix
-        if   sort == '0': stations = stations					# Normal
-        elif sort == '2': stations = stations[::-1]				# Reverse
-        elif sort == '1': stations = sorted(stations, key=lambda s: s.name)	# A-Z
-        stations.insert(0, quickmix)						# Quickmix back on top
 
         self.wait['stations'] = time.time() + (60 * 5)				# Valid for 5 mins
         self.stations = stations
+        return stations
+
+
+    def Sorted(self):
+        sort = Val('sort')
+        
+        stations = list(self.Stations())
+        quickmix = stations.pop(0)						# Quickmix
+
+        if   sort == '0': stations = stations					# Normal
+        elif sort == '2': stations = stations[::-1]				# Reverse
+        elif sort == '1': stations = sorted(stations, key=lambda s: s['name'])	# A-Z
+
+        stations.insert(0, quickmix)						# Quickmix back on top
         return stations
 
 
@@ -117,7 +126,7 @@ class Pandoki(object):
         li.setThumbnailImage(Val('icon'))
         xbmcplugin.addDirectoryItem(int(handle), "%s?quit=%s" % (_base, _stamp), li)
 
-        for station in self.Stations():
+        for station in self.Sorted():
             li = xbmcgui.ListItem(station['name'], station['token'])
             img = Val("art-%s" % station['token'])
             li.setIconImage(img)
@@ -143,7 +152,7 @@ class Pandoki(object):
         self.playlist.add(song['path'], li)
         self.track += 1
 
-        Log("Add   OK %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
+        Log("Add   OK %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']), xbmc.LOGNOTICE)
 
     
     def Queue(self, song):
@@ -227,7 +236,7 @@ class Pandoki(object):
 
         xbmcvfs.delete(tmp)
 
-        Log("Save  OK %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
+        Log("Save  OK %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']), xbmc.LOGNOTICE)
 
 
     def Hook(self, song, size, totl):
@@ -312,7 +321,7 @@ class Pandoki(object):
 
     def Fetch(self, song):
         lib = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.m4a" % (Val('library'), song['artist'], song['artist'], song['album'], song['artist'], song['title']))).decode("utf-8")
-        cch = xbmc.translatePath(("%s/%s - %s.%s.m4a" % (Val('cache'), song['artist'], song['title'], song['id'][:4]))).decode("utf-8")
+        cch = xbmc.translatePath(("%s/%s - %s.m4a" % (Val('cache'), song['artist'], song['title']))).decode("utf-8")
 
         if not Val("art-%s" % self.token):	# Set Station Thumb
             Val("art-%s" % self.token, song['art'])
@@ -468,7 +477,7 @@ class Pandoki(object):
     
         cch = xbmc.translatePath(Val('cache')).decode("utf-8")
         exp = time.time() - (float(Val('expire')) * 3600.0)
-        reg = re.compile('[a-z0-9]{4}\.m4a')
+        reg = re.compile('^.*\.m4a')
 
         (dirs, list) = xbmcvfs.listdir(cch)
 
@@ -478,7 +487,7 @@ class Pandoki(object):
 
                 if xbmcvfs.Stat(path).st_mtime() < exp:
                     xbmcvfs.delete(path)
-                    Log("Flush OK %s" % file[:4])
+                    Log("Flush OK     '%s'" % file)
 
 
     def Loop(self):
