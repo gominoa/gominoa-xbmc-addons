@@ -1,6 +1,6 @@
 diff -ruN xbmc-14.0a4-Helix.orig/Makefile.in xbmc-14.0a4-Helix/Makefile.in
 --- xbmc-14.0a4-Helix.orig/Makefile.in	2014-10-02 12:06:19.000000000 -0400
-+++ xbmc-14.0a4-Helix/Makefile.in	2014-10-03 01:29:28.592112283 -0400
++++ xbmc-14.0a4-Helix/Makefile.in	2014-10-21 21:58:03.461775299 -0400
 @@ -249,6 +249,12 @@
    INSTALL_FILTER+= .*visualization\.goom.*
  endif
@@ -16,7 +16,7 @@ diff -ruN xbmc-14.0a4-Helix.orig/Makefile.in xbmc-14.0a4-Helix/Makefile.in
  	lib/addons/library.xbmc.codec \
 diff -ruN xbmc-14.0a4-Helix.orig/addons/visualization.video/addon.xml xbmc-14.0a4-Helix/addons/visualization.video/addon.xml
 --- xbmc-14.0a4-Helix.orig/addons/visualization.video/addon.xml	1969-12-31 19:00:00.000000000 -0500
-+++ xbmc-14.0a4-Helix/addons/visualization.video/addon.xml	2014-10-03 01:17:34.439132420 -0400
++++ xbmc-14.0a4-Helix/addons/visualization.video/addon.xml	2014-10-21 21:58:03.461775299 -0400
 @@ -0,0 +1,22 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<addon id="visualization.video"
@@ -42,7 +42,7 @@ diff -ruN xbmc-14.0a4-Helix.orig/addons/visualization.video/addon.xml xbmc-14.0a
 +</addon>
 diff -ruN xbmc-14.0a4-Helix.orig/addons/visualization.video/resources/settings.xml xbmc-14.0a4-Helix/addons/visualization.video/resources/settings.xml
 --- xbmc-14.0a4-Helix.orig/addons/visualization.video/resources/settings.xml	1969-12-31 19:00:00.000000000 -0500
-+++ xbmc-14.0a4-Helix/addons/visualization.video/resources/settings.xml	2014-10-03 00:19:59.437885149 -0400
++++ xbmc-14.0a4-Helix/addons/visualization.video/resources/settings.xml	2014-10-21 21:58:03.461775299 -0400
 @@ -0,0 +1,4 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<settings>
@@ -50,7 +50,7 @@ diff -ruN xbmc-14.0a4-Helix.orig/addons/visualization.video/resources/settings.x
 +</settings>
 diff -ruN xbmc-14.0a4-Helix.orig/configure.in xbmc-14.0a4-Helix/configure.in
 --- xbmc-14.0a4-Helix.orig/configure.in	2014-10-02 12:06:19.000000000 -0400
-+++ xbmc-14.0a4-Helix/configure.in	2014-10-06 14:08:25.314552843 -0400
++++ xbmc-14.0a4-Helix/configure.in	2014-10-21 21:58:03.462775195 -0400
 @@ -171,6 +171,8 @@
  fishbmc_disabled="== FishBMC disabled. =="
  projectm_enabled="== ProjectM enabled. =="
@@ -113,7 +113,7 @@ diff -ruN xbmc-14.0a4-Helix.orig/configure.in xbmc-14.0a4-Helix/configure.in
      lib/addons/library.xbmc.addon/Makefile \
 diff -ruN xbmc-14.0a4-Helix.orig/xbmc/visualizations/video/Makefile.in xbmc-14.0a4-Helix/xbmc/visualizations/video/Makefile.in
 --- xbmc-14.0a4-Helix.orig/xbmc/visualizations/video/Makefile.in	1969-12-31 19:00:00.000000000 -0500
-+++ xbmc-14.0a4-Helix/xbmc/visualizations/video/Makefile.in	2014-10-03 01:19:42.799832664 -0400
++++ xbmc-14.0a4-Helix/xbmc/visualizations/video/Makefile.in	2014-10-21 21:58:03.463775091 -0400
 @@ -0,0 +1,21 @@
 +ARCH=@ARCH@
 +CXXFLAGS=-fPIC
@@ -138,8 +138,8 @@ diff -ruN xbmc-14.0a4-Helix.orig/xbmc/visualizations/video/Makefile.in xbmc-14.0
 +include @abs_top_srcdir@/Makefile.include
 diff -ruN xbmc-14.0a4-Helix.orig/xbmc/visualizations/video/video.cpp xbmc-14.0a4-Helix/xbmc/visualizations/video/video.cpp
 --- xbmc-14.0a4-Helix.orig/xbmc/visualizations/video/video.cpp	1969-12-31 19:00:00.000000000 -0500
-+++ xbmc-14.0a4-Helix/xbmc/visualizations/video/video.cpp	2014-10-03 01:44:34.158174674 -0400
-@@ -0,0 +1,250 @@
++++ xbmc-14.0a4-Helix/xbmc/visualizations/video/video.cpp	2014-10-21 22:00:07.367861076 -0400
+@@ -0,0 +1,252 @@
 +/*
 + *      Copyright (C) 2005-2013 Team XBMC
 + *      http://xbmc.org
@@ -307,10 +307,12 @@ diff -ruN xbmc-14.0a4-Helix.orig/xbmc/visualizations/video/video.cpp xbmc-14.0a4
 +    gettimeofday(&now, NULL);
 +    double current = (double)now.tv_sec + ((double)now.tv_usec / (double)CLOCKS_PER_SEC);
 +
++    if (m_nextFrameTime == 0.0) m_nextFrameTime = current;
++
 +    // We're supposed to show m_decoder->getFramesPerSecond() frames in one second.
 +    if (current >= m_nextFrameTime)
 +    {	// We don't care to adjust for the exact timing
-+	m_nextFrameTime = current + m_secondsPerFrame - (current - m_nextFrameTime);
++	m_nextFrameTime += m_secondsPerFrame;
 +
 +	while (true)
 +        {

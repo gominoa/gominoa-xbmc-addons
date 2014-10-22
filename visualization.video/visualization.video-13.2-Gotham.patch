@@ -1,6 +1,6 @@
 diff -ruN xbmc-13.2-Gotham.orig/Makefile.in xbmc-13.2-Gotham/Makefile.in
 --- xbmc-13.2-Gotham.orig/Makefile.in	2014-08-17 09:19:05.000000000 -0400
-+++ xbmc-13.2-Gotham/Makefile.in	2014-10-01 15:05:49.483005015 -0400
++++ xbmc-13.2-Gotham/Makefile.in	2014-10-21 22:06:41.180816591 -0400
 @@ -253,6 +253,12 @@
    INSTALL_FILTER+= .*visualization\.goom.*
  endif
@@ -16,7 +16,7 @@ diff -ruN xbmc-13.2-Gotham.orig/Makefile.in xbmc-13.2-Gotham/Makefile.in
  	lib/addons/library.xbmc.codec \
 diff -ruN xbmc-13.2-Gotham.orig/addons/visualization.video/addon.xml xbmc-13.2-Gotham/addons/visualization.video/addon.xml
 --- xbmc-13.2-Gotham.orig/addons/visualization.video/addon.xml	1969-12-31 19:00:00.000000000 -0500
-+++ xbmc-13.2-Gotham/addons/visualization.video/addon.xml	2014-10-02 01:24:03.361889678 -0400
++++ xbmc-13.2-Gotham/addons/visualization.video/addon.xml	2014-10-21 22:06:41.188815757 -0400
 @@ -0,0 +1,22 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<addon id="visualization.video"
@@ -42,7 +42,7 @@ diff -ruN xbmc-13.2-Gotham.orig/addons/visualization.video/addon.xml xbmc-13.2-G
 +</addon>
 diff -ruN xbmc-13.2-Gotham.orig/addons/visualization.video/resources/settings.xml xbmc-13.2-Gotham/addons/visualization.video/resources/settings.xml
 --- xbmc-13.2-Gotham.orig/addons/visualization.video/resources/settings.xml	1969-12-31 19:00:00.000000000 -0500
-+++ xbmc-13.2-Gotham/addons/visualization.video/resources/settings.xml	2014-10-01 16:32:15.834838857 -0400
++++ xbmc-13.2-Gotham/addons/visualization.video/resources/settings.xml	2014-10-21 22:06:41.188815757 -0400
 @@ -0,0 +1,4 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<settings>
@@ -50,7 +50,7 @@ diff -ruN xbmc-13.2-Gotham.orig/addons/visualization.video/resources/settings.xm
 +</settings>
 diff -ruN xbmc-13.2-Gotham.orig/configure.in xbmc-13.2-Gotham/configure.in
 --- xbmc-13.2-Gotham.orig/configure.in	2014-08-17 09:19:05.000000000 -0400
-+++ xbmc-13.2-Gotham/configure.in	2014-10-05 10:25:21.671246505 -0400
++++ xbmc-13.2-Gotham/configure.in	2014-10-21 22:06:41.189815653 -0400
 @@ -135,6 +135,8 @@
  fishbmc_disabled="== FishBMC disabled. =="
  projectm_enabled="== ProjectM enabled. =="
@@ -113,7 +113,7 @@ diff -ruN xbmc-13.2-Gotham.orig/configure.in xbmc-13.2-Gotham/configure.in
      lib/addons/library.xbmc.addon/Makefile \
 diff -ruN xbmc-13.2-Gotham.orig/xbmc/visualizations/video/Makefile.in xbmc-13.2-Gotham/xbmc/visualizations/video/Makefile.in
 --- xbmc-13.2-Gotham.orig/xbmc/visualizations/video/Makefile.in	1969-12-31 19:00:00.000000000 -0500
-+++ xbmc-13.2-Gotham/xbmc/visualizations/video/Makefile.in	2014-10-01 15:15:18.786678879 -0400
++++ xbmc-13.2-Gotham/xbmc/visualizations/video/Makefile.in	2014-10-21 22:06:41.189815653 -0400
 @@ -0,0 +1,21 @@
 +ARCH=@ARCH@
 +CXXFLAGS=-fPIC
@@ -138,8 +138,8 @@ diff -ruN xbmc-13.2-Gotham.orig/xbmc/visualizations/video/Makefile.in xbmc-13.2-
 +include @abs_top_srcdir@/Makefile.include
 diff -ruN xbmc-13.2-Gotham.orig/xbmc/visualizations/video/video.cpp xbmc-13.2-Gotham/xbmc/visualizations/video/video.cpp
 --- xbmc-13.2-Gotham.orig/xbmc/visualizations/video/video.cpp	1969-12-31 19:00:00.000000000 -0500
-+++ xbmc-13.2-Gotham/xbmc/visualizations/video/video.cpp	2014-10-01 16:31:24.687080583 -0400
-@@ -0,0 +1,227 @@
++++ xbmc-13.2-Gotham/xbmc/visualizations/video/video.cpp	2014-10-21 22:10:21.956807232 -0400
+@@ -0,0 +1,229 @@
 +/*
 + *      Copyright (C) 2005-2013 Team XBMC
 + *      http://xbmc.org
@@ -296,9 +296,11 @@ diff -ruN xbmc-13.2-Gotham.orig/xbmc/visualizations/video/video.cpp xbmc-13.2-Go
 +    gettimeofday(&now, NULL);
 +    double current = (double)now.tv_sec + ((double)now.tv_usec / (double)CLOCKS_PER_SEC);
 +
++    if (m_nextFrameTime == 0.0) m_nextFrameTime = current;
++
 +    // We're supposed to show m_decoder->getFramesPerSecond() frames in one second.
 +    if (current >= m_nextFrameTime) { // We don't care to adjust for the exact timing
-+	m_nextFrameTime = current + m_secondsPerFrame - (current - m_nextFrameTime);
++	m_nextFrameTime += m_secondsPerFrame;
 +
 +	while (true) {
 +	    if (!m_decoder->nextFrame(m_texture)) { // End of video; restart
