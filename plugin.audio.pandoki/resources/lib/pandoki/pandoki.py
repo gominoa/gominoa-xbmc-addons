@@ -44,11 +44,12 @@ class Pandoki(object):
         self.station	= None
         self.stations	= None
         self.songs	= { }
+        self.track	= 1
         self.pithos	= pithos.Pithos()
         self.player	= xbmc.Player()
         self.playlist	= xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
         self.queue	= collections.deque()
-        self.track	= 1
+        self.prof	= Val('prof')
         self.wait	= { 'auth' : 0, 'stations' : 0, 'fill' : 0, 'flush' : 0, 'rate' : 0 }
         self.silent	= xbmc.translatePath("special://home/addons/%s/resources/media/silent.m4a" % _id)
 
@@ -76,11 +77,17 @@ class Pandoki(object):
 
 
     def Auth(self):
+        p = Val('prof')
+        if self.prof != p:
+            self.wait['auth'] = 0
+            self.stations = None
+            self.prof = p
+
         if time.time() < self.wait['auth']: return True
 
         self.pithos.set_url_opener(self.Proxy())
 
-        try: self.pithos.connect(Val('pandoraone'), Val('username'), Val('password'))
+        try: self.pithos.connect(Val('pandoraone'), Val('username' + p), Val('password' + p))
         except pithos.PithosError:
             Log('Auth BAD')
             return False
@@ -413,8 +420,6 @@ class Pandoki(object):
     
         songs = dict()
 
-        Log("Rated%4d" % len(self.songs)) 
-
         for pos in range(0, self.playlist.size()):
             id = self.playlist[pos].getProperty("%s.id" % _id)
             rt = xbmc.getInfoLabel("MusicPlayer.Position(%d).Rating" % pos)
@@ -437,8 +442,6 @@ class Pandoki(object):
 
     def List(self):
         if (not self.token) or (not self.player.isPlayingAudio()): return
-
-        self.Rate()
 
         len = self.playlist.size()
         pos = self.playlist.getposition()
