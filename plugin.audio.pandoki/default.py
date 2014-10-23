@@ -33,13 +33,12 @@ def Wait(key, value):
 
 if thumb:
     img = xbmcgui.Dialog().browseSingle(2, 'Select Thumb', 'files', useThumbs = True)
-    Val("img-%s" % thumb, img)
+    Val("art-%s" % thumb, img)
     xbmc.executebuiltin("Container.Refresh")            
 
 if play:   Wait('play', play)
 #elif quit: Wait('quit', quit)
 else:      Wait('dir', handle)
 
-
-if run: run.Loop()
+if run:    run.Loop()
 
