@@ -229,7 +229,7 @@ class Pithos(object):
 
             song = { 'id' : s['songIdentity'], 'artist' : s['artistName'], 'album' : s['albumName'], 'title' : s['songName'], 'art' : s['albumArtUrl'] }
 
-            song['rating'] = '5' if s['songRating'] == 1 else None
+            song['rating'] = '5' if s['songRating'] == 1 else '3'
             song['0'] = s['audioUrlMap']['lowQuality']['audioUrl']
             song['1'] = s['audioUrlMap']['mediumQuality']['audioUrl']
             song['2'] = s['audioUrlMap']['highQuality']['audioUrl']
