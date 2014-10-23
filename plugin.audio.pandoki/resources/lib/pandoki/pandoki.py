@@ -92,13 +92,12 @@ class Pandoki(object):
     def Stations(self):
         if (self.stations) and (time.time() < self.wait['stations']):
             return self.stations
-        if not self.Auth(): return None
 
-        stations = self.pithos.get_stations()
+        if not self.Auth(): return None
+        self.stations = self.pithos.get_stations()
 
         self.wait['stations'] = time.time() + (60 * 5)				# Valid for 5 mins
-        self.stations = stations
-        return stations
+        return self.stations
 
 
     def Sorted(self):
@@ -358,12 +357,18 @@ class Pandoki(object):
 
     def Fill(self):
         if time.time() < self.wait['fill']: return
-        if not self.Auth(): return
+
+        if not self.Auth():
+            self.Msg('Login Failed. Check Settings')
+            self.abort = True
+            return
 
         try: songs = self.pithos.get_playlist(self.token)
         except (pithos.PithosTimeout, pithos.PithosNetError): pass
         except (pithos.PithosAuthTokenInvalid, pithos.PithosAPIVersionError, pithos.PithosError) as e:
-            xbmcgui.Dialog().ok(Val('name'), e.message, '', e.submsg)
+            Log("%s, %s" % (e.message, e.submsg))
+            self.Msg(e.message)
+            self.abort = True
             return
 
         for song in songs:
