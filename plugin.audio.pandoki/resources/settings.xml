@@ -17,11 +17,13 @@
 	</category>
 	<category                                      label="Settings">
 		<setting id="pandoraone" type="bool"   label="Pandora One"      default="false"/>
+		<setting id="autoplay"   type="bool"   label="Auto Play Last Station"           default="false"/>
 		<setting id="sort"       type="enum"   label="Sort Stations"    default="0"     values="Newest|A-Z|Oldest"/>
 		<setting id="quality"    type="enum"   label="Audio Quality"    default="2"     values="Low|Medium|High"/>
 		<setting id="mode"       type="enum"   label="Track Handling"   default="0"     values="Stream Only|Save to Library|Cache Only"/>
 		<setting id="skip"       type="bool"   label="Skip Ads"         default="false" visible="!eq(-1,0)"/>
-		<setting                 type="sep"/>
+	</category>
+	<category                                      label="Advanced">
 		<setting id="history"    type="slider" label="Playlist History" default="14"    range="0,1,50"     option="int"/>
 		<setting id="adsize"     type="slider" label="Advert Size"      default="272"   range="8,8,1024"   option="int"/>
 		<setting id="prefetch"   type="slider" label="Track Prefetch"   default="64"    range="8,8,256"    option="int"/>

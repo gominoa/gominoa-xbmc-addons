@@ -13,7 +13,7 @@ query	= urlparse.parse_qs(sys.argv[2][1:])
 
 thumb	= query.get('thumb')[0] if query.get('thumb') else None
 play	= query.get('play')[0]  if query.get('play')  else None
-quit	= query.get('quit')[0]  if query.get('quit')  else None
+#quit	= query.get('quit')[0]  if query.get('quit')  else None
 
 
 run = Prop('run') # only start up once
@@ -36,15 +36,9 @@ if thumb:
     Val("img-%s" % thumb, img)
     xbmc.executebuiltin("Container.Refresh")            
 
-if play:
-    Prop('handle', handle)
-    Wait('play', play)
-
-elif quit:
-    Wait('quit', quit)
-
-else:
-    Wait('dir', handle)
+if play:   Wait('play', play)
+#elif quit: Wait('quit', quit)
+else:      Wait('dir', handle)
 
 
 if run: run.Loop()

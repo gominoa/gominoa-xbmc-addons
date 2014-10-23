@@ -215,8 +215,8 @@ class Pithos(object):
     def get_stations(self, *ignore):
         self.stations = []
 
-        for s in self.json_call('user.getStationList')['stations']:
-            self.stations.append({ 'id' : s['stationId'], 'token' : s['stationToken'], 'name' : s['stationName'] })
+        for s in self.json_call('user.getStationList', {'includeStationArtUrl' : True})['stations']:
+            self.stations.append({ 'id' : s['stationId'], 'token' : s['stationToken'], 'name' : s['stationName'], 'art' : s['artUrl'] })
 
         return self.stations
 
@@ -227,7 +227,8 @@ class Pithos(object):
         for s in self.json_call('station.getPlaylist', {'stationToken': token}, https = True)['items']:
             if s.get('adToken'): continue
 
-            song = { 'id' : s['songIdentity'], 'artist' : s['artistName'], 'album' : s['albumName'], 'title' : s['songName'], 'art' : s['albumArtUrl'] }
+            song = { 'id' : s['songIdentity'], 'token' : s['trackToken'], 'station' : s['stationId'],
+                 'artist' : s['artistName'],   'album' : s['albumName'],    'title' : s['songName'], 'art' : s['albumArtUrl'] }
 
             song['rating'] = '5' if s['songRating'] == 1 else '3'
             song['0'] = s['audioUrlMap']['lowQuality']['audioUrl']

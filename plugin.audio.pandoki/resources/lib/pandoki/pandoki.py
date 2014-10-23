@@ -128,16 +128,19 @@ class Pandoki(object):
                 xbmcaddon.Addon().openSettings()
             else: exit()
 
-        li = xbmcgui.ListItem("Quit %s" % Val('name'), _stamp)
-        li.setIconImage(Val('icon'))
-        li.setThumbnailImage(Val('icon'))
-        xbmcplugin.addDirectoryItem(int(handle), "%s?quit=%s" % (_base, _stamp), li)
+#        li = xbmcgui.ListItem("Quit %s" % Val('name'), _stamp)
+#        li.setIconImage(Val('icon'))
+#        li.setThumbnailImage(Val('icon'))
+#        xbmcplugin.addDirectoryItem(int(handle), "%s?quit=%s" % (_base, _stamp), li)
 
         for station in self.Sorted():
             li = xbmcgui.ListItem(station['name'], station['token'])
+
             img = Val("art-%s" % station['token'])
+            if not img: img = station['art']
             li.setIconImage(img)
             li.setThumbnailImage(img)
+
             li.addContextMenuItems([('Select Thumb', "RunPlugin(plugin://%s/?thumb=%s)" % (_id, station['token']))])
 
             xbmcplugin.addDirectoryItem(int(handle), "%s?play=%s" % (_base, station['token']), li)
@@ -198,6 +201,7 @@ class Pandoki(object):
 
         for s in self.Stations():
             if token == s['token']:
+                Val('station' + self.prof, token)
                 self.token = token
                 self.station = s
                 return s
@@ -334,8 +338,8 @@ class Pandoki(object):
         lib = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.m4a" % (Val('library'), song['artist'], song['artist'], song['album'], song['artist'], song['title']))).decode("utf-8")
         cch = xbmc.translatePath(("%s/%s - %s.m4a" % (Val('cache'), song['artist'], song['title']))).decode("utf-8")
 
-        if not Val("art-%s" % self.token):	# Set Station Thumb
-            Val("art-%s" % self.token, song['art'])
+#        if not Val("art-%s" % self.token):	# Set Station Thumb
+#            Val("art-%s" % self.token, song['art'])
 
         if xbmcvfs.exists(lib):			# Found in Library
             Log("Song LIB %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
@@ -479,7 +483,7 @@ class Pandoki(object):
             xbmc.executebuiltin("Container.Refresh")
 
 
-    def Play(self, handle, token):
+    def Play(self, token):
         if token != self.token:
             station = self.Station(token)
             self.wait['fill'] = 0
@@ -495,26 +499,26 @@ class Pandoki(object):
         Prop('run', str(time.time()))
 
         stamp = Prop('stamp')
-        quit = Prop('quit')
-        handle = Prop('handle')
+#        quit = Prop('quit')
         play = Prop('play')
         dir = Prop('dir')
 
-        if quit or (stamp != _stamp):
-            self.abort = True
-            self.token = None
-            Prop('quit', None)
-            xbmc.executebuiltin('ActivateWindow(10000)')
-            return
+#        if quit or (stamp != _stamp):
+#            self.abort = True
+#            self.token = None
+#            Prop('quit', None)
+#            xbmc.executebuiltin('ActivateWindow(10000)')
+#            return
 
-        if handle and play:
-            self.Play(handle, play)
-            Prop('handle', None)
+        if play:
+            self.Play(play)
             Prop('play', None)
 
         if dir:
             self.Dir(dir)
             Prop('dir', None)
+            if (self.once) and (Val('autoplay') == 'true') and (Val('station' + self.prof)):
+                self.Play(Val('station' + self.prof))
 
 
     def Flush(self):
@@ -537,7 +541,7 @@ class Pandoki(object):
 
 
     def Loop(self):
-        while (not xbmc.abortRequested) and (not self.abort):
+        while (not xbmc.abortRequested) and (not self.abort) and (self.once or self.player.isPlayingAudio()):
             time.sleep(0.01)
             xbmc.sleep(1000)
 
