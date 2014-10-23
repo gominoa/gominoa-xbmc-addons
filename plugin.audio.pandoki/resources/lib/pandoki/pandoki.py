@@ -128,11 +128,6 @@ class Pandoki(object):
                 xbmcaddon.Addon().openSettings()
             else: exit()
 
-#        li = xbmcgui.ListItem("Quit %s" % Val('name'), _stamp)
-#        li.setIconImage(Val('icon'))
-#        li.setThumbnailImage(Val('icon'))
-#        xbmcplugin.addDirectoryItem(int(handle), "%s?quit=%s" % (_base, _stamp), li)
-
         for station in self.Sorted():
             li = xbmcgui.ListItem(station['name'], station['token'])
 
@@ -277,7 +272,6 @@ class Pandoki(object):
 
         if (not song.get('qued')) and (size >= int(Val('prefetch')) * 1024):
             song['qued'] = True
-#            self.Tag(song)
             self.Queue(song)
 
         return True
@@ -348,13 +342,11 @@ class Pandoki(object):
         if xbmcvfs.exists(lib):			# Found in Library
             Log("Song LIB %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
             song['path'] = song['save'] = lib
-#            self.Tag(song)
             self.Queue(song)
 
         elif xbmcvfs.exists(cch):		# Found in Cache
             Log("Song CCH %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
             song['path'] = cch
-#            self.Tag(song)
             self.Queue(song)
 
         elif Val('mode') == '0':		# Stream Only
@@ -503,16 +495,13 @@ class Pandoki(object):
         Prop('run', str(time.time()))
 
         stamp = Prop('stamp')
-#        quit = Prop('quit')
         play = Prop('play')
         dir = Prop('dir')
 
-#        if quit or (stamp != _stamp):
-#            self.abort = True
-#            self.token = None
-#            Prop('quit', None)
-#            xbmc.executebuiltin('ActivateWindow(10000)')
-#            return
+        if stamp != _stamp:
+            self.abort = True
+            self.token = None
+            return
 
         if play:
             self.Play(play)
