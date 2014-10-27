@@ -414,10 +414,63 @@ class Pandoki(object):
             else: break
 
 
-    def Rate(self):
+#    def Purge(self, song):
+#        path = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.m4a" % (Val('library'), song['artist'], song['artist'], song['album'], song['artist'], song['title']))).decode("utf-8")
+#
+#        if xbmcvfs.exists(path):
+#            xbmcvfs.delete(path)
+
+    def Seed(self, song):
+        result = self.pithos.search("%s by %s" % (song['title'], song['artist']))[0]
+
+        if (result['title'] == song['title']) and (result['artist'] == song['artist']):
+            self.pithos.add_seed(song['station'], result['token'])
+        else:
+            Log("Seed BAD %s '%s - %s'" % (int(song['rating']), int(song['rated']), song['id'][:4], song['artist'], song['title']))
+
+
+    def Rate(self, song):
+        if song['rating'] == song['rated']: return
+    
+        expert = (Val('rating') == '1')
+
+        if (song['rated'] == '5'):
+            self.pithos.add_feedback(song['token'], True)
+            self.Save(song)
+
+        elif (song['rated'] == '4'):
+            if (expert):
+                self.Seed(song)
+            else:
+                self.pithos.add_feedback(song['token'], True)
+            self.Save(song)
+
+        elif (song['rated'] == '3'):
+            feedback = self.pithos.add_feedback(song['token'], True)
+            self.pithos.del_feedback(song['station'], feedback)
+
+        elif (song['rated'] == '2'):
+            if (expert):
+                self.pithos.set_tired(song['token'])
+            else:
+                self.pithos.add_feedback(song['token'], False)
+
+        elif (song['rated'] == '1'):
+            self.pithos.add_feedback(song['token'], False)
+
+        elif (song['rated'] == '0'):
+            self.pithos.add_feedback(song['token'], False)
+#            self.Purge(song)
+
+        Log("Rate %d>%d %s '%s - %s'" % (int(song['rating']), int(song['rated']), song['id'][:4], song['artist'], song['title']))
+        song['rating'] = song['rated']
+
+
+    def Scan(self):
+        if xbmcgui.getCurrentWindowDialogId() == 10135: return
         if time.time() < self.wait['rate']: return
         self.wait['rate'] = time.time() + 15
-    
+
         songs = dict()
 
         for pos in range(0, self.playlist.size()):
@@ -430,12 +483,9 @@ class Pandoki(object):
                 song = self.songs[id]
                 songs[id] = song
 
-                if (song['rating'] != rt) and (song['rated'] == rt):
-                    song['rating'] = rt
-                    Log("Rated    %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
-                    print song
-                    # got a legit change
-                else: song['rated'] = rt
+                if (song['rating'] != rt):
+                    song['rated'] = rt
+                    self.Rate(song)
 
         self.songs = songs
 
@@ -453,9 +503,15 @@ class Pandoki(object):
         try: item = self.playlist[pos]
         except RuntimeError: return
 
-        id = item.getProperty("%s.id" % _id)
-        if (id != 'mesg') and (left == 0): self.Msg("Queueing %s" % self.Station()['name'])
-        if (id == 'mesg') and (left  > 0): self.player.playnext()
+        id   = item.getProperty("%s.id" % _id)
+        skip = xbmc.getInfoLabel("MusicPlayer.Position(%d).Rating" % pos)
+        skip = ((skip == '') or (int(skip) < 3)) and (xbmcgui.getCurrentWindowDialogId() != 10135)
+
+        if (id != 'mesg') and (left == 0):
+            self.Msg("Queueing %s" % self.Station()['name'])
+
+        if ((skip) or (id == 'mesg')) and (left > 0):
+            self.player.playnext()
 
 #        Log("List  OK %s '%d / %d'" % (self.token[:4], pos + 1, len))
 
@@ -540,7 +596,7 @@ class Pandoki(object):
 
             self.Flush()
             self.Props()
-            self.Rate()
+            self.Scan()
             self.Deque()
             self.List()
 

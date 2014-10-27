@@ -77,10 +77,8 @@ _client = {
 }
 
 
-
 def pad(s, l):
     return s + "\0" * (l - len(s))
-
 
 
 class Pithos(object):
@@ -238,3 +236,35 @@ class Pithos(object):
             self.playlist.append(song)
 
         return self.playlist
+
+
+    def add_feedback(self, trackToken, rating_bool):
+        feedback = self.json_call('station.addFeedback', {'trackToken': trackToken, 'isPositive': rating_bool})
+        return feedback['feedbackId']
+
+
+    def del_feedback(self, stationToken, feedbackId):
+        self.json_call('station.deleteFeedback', {'feedbackId': feedbackId, 'stationToken': stationToken})
+
+
+    def set_tired(self, trackToken):
+        self.json_call('user.sleepSong', {'trackToken': trackToken})
+
+
+    def search(self, query, songs = True, artists = False):
+        results = self.json_call('music.search', {'searchText': query})
+        l = []
+
+        if songs:
+            for d in results['songs']:
+                l += [{ 'score' : d['score'], 'token' : d['musicToken'], 'artist' : d['artistName'], 'title' : d['songName'] }]
+        if artists:
+            for d in results['artists']:
+                l += [{ 'score' : d['score'], 'token' : d['musicToken'], 'artist' : d['artistName'] }]
+
+        return sorted(l, key=lambda i: i['score'], reverse=True)
+
+
+    def add_seed(self, stationToken, musicToken):
+        self.json_call('station.addMusic', { 'stationToken' : stationToken, 'musicToken' : musicToken} )
+
