@@ -229,9 +229,13 @@ class Pithos(object):
                  'artist' : s['artistName'],   'album' : s['albumName'],    'title' : s['songName'],       'art' : s['albumArtUrl'] }
 
             song['rating'] = '5' if s['songRating'] == 1 else '3'
-            song['0'] = s['audioUrlMap']['lowQuality']['audioUrl']
-            song['1'] = s['audioUrlMap']['mediumQuality']['audioUrl']
             song['2'] = s['audioUrlMap']['highQuality']['audioUrl']
+            song['1'] = s['audioUrlMap']['mediumQuality']['audioUrl']
+
+            if s['audioUrlMap'].get('lowQuality'): # pandora one doesnt have low
+                song['0'] = s['audioUrlMap']['lowQuality']['audioUrl']
+            else:
+                song['0'] = song['1']
 
             self.playlist.append(song)
 

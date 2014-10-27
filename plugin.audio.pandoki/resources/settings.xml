@@ -20,7 +20,7 @@
 		<setting id="autoplay"   type="bool"   label="Auto Play Last Station"           default="false"/>
 		<setting id="sort"       type="enum"   label="Sort Stations"    default="0"     values="Newest|A-Z|Oldest"/>
 		<setting id="quality"    type="enum"   label="Audio Quality"    default="2"     values="Low|Medium|High"/>
-		<setting id="rating"     type="enum"   label="Rating Mode"      default="0"     values="Basic|Expert"/>
+		<setting id="rating"     type="enum"   label="Rating Mode"      default="0"     values="Simple|Expert"/>
 		<setting id="mode"       type="enum"   label="Track Handling"   default="0"     values="Stream Only|Save to Library|Cache Only"/>
 		<setting id="skip"       type="bool"   label="Skip Ads"         default="false" visible="!eq(-1,0)"/>
 	</category>
