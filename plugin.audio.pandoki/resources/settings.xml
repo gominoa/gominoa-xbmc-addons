@@ -4,10 +4,13 @@
 		<setting id="prof"       type="enum"   label="Account"          default="0"     values="1|3|2"/>
 		<setting id="username0"  type="text"   label="Username (email)"                 visible="eq(-1,0)"/>
 		<setting id="password0"  type="text"   label="Password"                         visible="eq(-2,0)" option="hidden"/>
-		<setting id="username1"  type="text"   label="Username (email)"                 visible="eq(-3,1)"/>
-		<setting id="password1"  type="text"   label="Password"                         visible="eq(-4,1)" option="hidden"/>
-		<setting id="username2"  type="text"   label="Username (email)"                 visible="eq(-5,2)"/>
-		<setting id="password2"  type="text"   label="Password"                         visible="eq(-6,2)" option="hidden"/>
+		<setting id="one0"       type="bool"   label="Pandora One"      default="false" visible="eq(-3,0)"/>
+		<setting id="username1"  type="text"   label="Username (email)"                 visible="eq(-4,1)"/>
+		<setting id="password1"  type="text"   label="Password"                         visible="eq(-5,1)" option="hidden"/>
+		<setting id="one1"       type="bool"   label="Pandora One"      default="false" visible="eq(-6,1)"/>
+		<setting id="username2"  type="text"   label="Username (email)"                 visible="eq(-7,2)"/>
+		<setting id="password2"  type="text"   label="Password"                         visible="eq(-8,2)" option="hidden"/>
+		<setting id="one2"       type="bool"   label="Pandora One"      default="false" visible="eq(-9,2)"/>
 		<setting                 type="sep"/>
 		<setting id="proxy"      type="enum"   label="Use Proxy"        default="0"     values="Global|None|Custom"/>
 		<setting id="proxy_host" type="text"   label="Server"                           visible="eq(-1,2)"/>
@@ -16,18 +19,17 @@
 		<setting id="proxy_pass" type="text"   label="Password"                         visible="eq(-4,2)" option="hidden"/>
 	</category>
 	<category                                      label="Settings">
-		<setting id="pandoraone" type="bool"   label="Pandora One"      default="false"/>
 		<setting id="autoplay"   type="bool"   label="Auto Play Last Station"           default="false"/>
 		<setting id="sort"       type="enum"   label="Sort Stations"    default="0"     values="Newest|A-Z|Oldest"/>
 		<setting id="quality"    type="enum"   label="Audio Quality"    default="2"     values="Low|Medium|High"/>
 		<setting id="rating"     type="enum"   label="Rating Mode"      default="0"     values="Simple|Expert"/>
-		<setting id="mode"       type="enum"   label="Track Handling"   default="0"     values="Stream Only|Save to Library|Cache Only"/>
+		<setting id="mode"       type="enum"   label="Track Handling"   default="0"     values="Stream Only|Save All Tracks|Save Liked Tracks"/>
 		<setting id="skip"       type="bool"   label="Skip Ads"         default="false" visible="!eq(-1,0)"/>
 	</category>
 	<category                                      label="Advanced">
 		<setting id="history"    type="slider" label="Playlist History" default="14"    range="0,1,50"     option="int"/>
 		<setting id="adsize"     type="slider" label="Advert Size"      default="272"   range="8,8,1024"   option="int"/>
-		<setting id="prefetch"   type="slider" label="Track Prefetch"   default="64"    range="8,8,256"    option="int"/>
+		<setting id="delay"      type="slider" label="Track Prefetch"   default="7"     range="1,1,30"     option="int"/>
 		<setting id="expire"     type="slider" label="Cache Hours"      default="3"     range="1,1,24"     option="int"/>
 	</category>
 	<category                                      label="Folders">

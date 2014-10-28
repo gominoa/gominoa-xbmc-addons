@@ -219,23 +219,27 @@ class Pithos(object):
         return self.stations
 
 
-    def get_playlist(self, token):
+    def get_playlist(self, token, quality = 2):
+        qual = [ 'lowQuality', 'mediumQuality', 'highQuality' ]
         self.playlist = []
 
         for s in self.json_call('station.getPlaylist', { 'stationToken': token, 'includeTrackLength' : True }, https = True)['items']:
             if s.get('adToken'): continue
 
             song = { 'id' : s['songIdentity'], 'token' : s['trackToken'], 'station' : s['stationId'], 'duration' : s.get('trackLength'),
-                 'artist' : s['artistName'],   'album' : s['albumName'],    'title' : s['songName'],       'art' : s['albumArtUrl'] }
+                 'artist' : s['artistName'],   'album' : s['albumName'],    'title' : s['songName'],       'art' : s['albumArtUrl'],
+                 'url' : None, 'bitrate' : 64, 'encoding' : None, 'rating' : '3' }
 
-            song['rating'] = '5' if s['songRating'] == 1 else '3'
-            song['2'] = s['audioUrlMap']['highQuality']['audioUrl']
-            song['1'] = s['audioUrlMap']['mediumQuality']['audioUrl']
+            while quality < 3:
+                if s['audioUrlMap'].get(qual[quality]):
+                    song['url']      =     s['audioUrlMap'][qual[quality]]['audioUrl']
+                    song['encoding'] =     s['audioUrlMap'][qual[quality]]['encoding']
+                    song['bitrate']  = int(s['audioUrlMap'][qual[quality]]['bitrate'])
+                    break
+                quality += 1
 
-            if s['audioUrlMap'].get('lowQuality'): # pandora one doesnt have low
-                song['0'] = s['audioUrlMap']['lowQuality']['audioUrl']
-            else:
-                song['0'] = song['1']
+            if s['songRating'] == 1: song['rating'] = '5'
+            if song['encoding'] == 'aacplus': song['encoding'] = 'm4a'
 
             self.playlist.append(song)
 

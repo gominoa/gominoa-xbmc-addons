@@ -1,7 +1,10 @@
 import collections, re, socket, sys, threading, time, urllib, urllib2
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin, xbmcvfs
 import musicbrainzngs, pithos
+
 from mutagen.mp4 import MP4
+from mutagen.mp3 import MP3
+from mutagen.easyid3 import EasyID3
 
 
 
@@ -87,7 +90,7 @@ class Pandoki(object):
 
         self.pithos.set_url_opener(self.Proxy())
 
-        try: self.pithos.connect(Val('pandoraone'), Val('username' + p), Val('password' + p))
+        try: self.pithos.connect(Val('one' + p), Val('username' + p), Val('password' + p))
         except pithos.PithosError:
             Log('Auth BAD')
             return False
@@ -153,8 +156,10 @@ class Pandoki(object):
     def Add(self, song):
         li = xbmcgui.ListItem(song['artist'], song['title'], song['art'], song['art'])
         li.setProperty("%s.id" % _id, song['id'])
-        li.setProperty('mimetype', 'audio/aac')
         li.setInfo('music', self.Info(song))
+
+        if song.get('encoding') == 'm4a': li.setProperty('mimetype', 'audio/aac')
+        if song.get('encoding') == 'mp3': li.setProperty('mimetype', 'audio/mpeg')
 
         self.playlist.add(song['path'], li)
         self.track += 1
@@ -202,35 +207,39 @@ class Pandoki(object):
 
 
     def Tag(self, song, path):
-        mp4 = MP4(path)
-        dur = int(mp4.info.length * 1000)
+        dur = song['duration'] * 1000
         res = musicbrainzngs.search_recordings(limit = 1, query = song['title'], artist = song['artist'], release = song['album'], qdur = str(dur))['recording-list'][0]
         sco = res['ext:score']
 
-#        song['duration'] = dur / 1000
-#        song['score'] = sco
-#        song['brain'] = res['id']
-
+        if sco != '100': return False
         Log("Tag%4s%% %s '%s - %s'" % (sco, song['id'][:4], song['artist'], song['title']))
 
-        if sco == '100':
-            mp4['----:com.apple.iTunes:MusicBrainz Track Id'] = res['id']
-            mp4['\xa9ART'] = song['artist']
-            mp4['\xa9alb'] = song['album']
-            mp4['\xa9nam'] = song['title']
-            mp4.save()
-            return True
-        
-        return False
+        if song['encoding'] == 'm4a':
+            tag = MP4(path)
+            tag['----:com.apple.iTunes:MusicBrainz Track Id'] = res['id']
+            tag['\xa9ART'] = song['artist']
+            tag['\xa9alb'] = song['album']
+            tag['\xa9nam'] = song['title']
+            tag.save()
+
+        elif song['encoding'] == 'mp3':
+            tag = MP3(path, ID3 = EasyID3)
+            tag['musicbrainz_trackid'] = res['id']
+            tag['artist'] = song['artist']
+            tag['album']  = song['album']
+            tag['title']  = song['title']
+            tag.save()
+
+        return True
 
 
     def Save(self, song):
         if (song['title'] == 'Advertisement') or (song.get('save')): return
 
-        dst = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.m4a" % (Val('library'), song['artist'], song['artist'], song['album'], song['artist'], song['title']))).decode("utf-8")
-        dir = xbmc.translatePath(("%s/%s/%s - %s"             % (Val('library'), song['artist'], song['artist'], song['album']))                               ).decode("utf-8")
-        alb = xbmc.translatePath(("%s/%s/%s - %s/folder.jpg"  % (Val('library'), song['artist'], song['artist'], song['album']))                               ).decode("utf-8")
-        art = xbmc.translatePath(("%s/%s/folder.jpg"          % (Val('library'), song['artist']))                                                              ).decode("utf-8")
+        dst = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.%s" % (Val('library'), song['artist'], song['artist'], song['album'], song['artist'], song['title'], song['encoding']))).decode("utf-8")
+        dir = xbmc.translatePath(("%s/%s/%s - %s"            % (Val('library'), song['artist'], song['artist'], song['album']))).decode("utf-8")
+        alb = xbmc.translatePath(("%s/%s/%s - %s/folder.jpg" % (Val('library'), song['artist'], song['artist'], song['album']))).decode("utf-8")
+        art = xbmc.translatePath(("%s/%s/folder.jpg"         % (Val('library'), song['artist']))).decode("utf-8")
         tmp = "%s.tmp" % song['path']
 
         if not xbmcvfs.copy(song['path'], tmp):
@@ -253,7 +262,7 @@ class Pandoki(object):
 
 
     def Hook(self, song, size, totl):
-        if totl in (341980, 173310):	# empty song cause requesting to fast
+        if totl in (341980, 340554, 173310):	# empty song cause requesting to fast
             self.Msg('To Many Songs Requested')
             Log("Fetch MT %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
             return False
@@ -270,7 +279,7 @@ class Pandoki(object):
                 song['qued'] = True
                 self.Msg('Skipping Advertisements')
 
-        if (not song.get('qued')) and (size >= int(Val('prefetch')) * 1024):
+        if (not song.get('qued')) and (size >= (song['bitrate'] / 8 * 1024 * int(Val('delay')))):
             song['qued'] = True
             self.Queue(song)
 
@@ -297,7 +306,7 @@ class Pandoki(object):
 
 
     def Cache(self, song):
-        strm = urllib2.Request(song[Val('quality')])
+        strm = urllib2.Request(song['url'])
         strm = self.Proxy().open(strm, timeout = 10)
         totl = int(strm.headers['Content-Length'])
         size = 0
@@ -333,11 +342,8 @@ class Pandoki(object):
 
 
     def Fetch(self, song):
-        lib = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.m4a" % (Val('library'), song['artist'], song['artist'], song['album'], song['artist'], song['title']))).decode("utf-8")
-        cch = xbmc.translatePath(("%s/%s - %s.m4a" % (Val('cache'), song['artist'], song['title']))).decode("utf-8")
-
-#        if not Val("art-%s" % self.token):	# Set Station Thumb
-#            Val("art-%s" % self.token, song['art'])
+        lib = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.%s" % (Val('library'), song['artist'], song['artist'], song['album'], song['artist'], song['title'], song['encoding']))).decode("utf-8")
+        cch = xbmc.translatePath(("%s/%s - %s.%s" % (Val('cache'), song['artist'], song['title'], song['encoding']))).decode("utf-8")
 
         if xbmcvfs.exists(lib):			# Found in Library
             Log("Song LIB %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
@@ -351,7 +357,7 @@ class Pandoki(object):
 
         elif Val('mode') == '0':		# Stream Only
             Log("Song PAN %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
-            song['path'] = song[Val('quality')]
+            song['path'] = song['url']
             self.Queue(song)
 
         else:					# Cache / Save
@@ -377,7 +383,7 @@ class Pandoki(object):
             self.abort = True
             return
 
-        try: songs = self.pithos.get_playlist(self.token)
+        try: songs = self.pithos.get_playlist(self.token, int(Val('quality')))
         except (pithos.PithosTimeout, pithos.PithosNetError): pass
         except (pithos.PithosAuthTokenInvalid, pithos.PithosAPIVersionError, pithos.PithosError) as e:
             Log("%s, %s" % (e.message, e.submsg))
@@ -400,12 +406,6 @@ class Pandoki(object):
 
 
     def Trunc(self):
-#        while (self.playlist.size() > 0) and (self.playlist.getposition() != 0):
-#            xbmc.executeJSONRPC('{"jsonrpc":"2.0", "id":1, "method":"Playlist.Remove", "params":{"playlistid":' + str(xbmc.PLAYLIST_MUSIC) + ', "position":0}}')
-#
-#        while (self.playlist.size() > 1):
-#            xbmc.executeJSONRPC('{"jsonrpc":"2.0", "id":1, "method":"Playlist.Remove", "params":{"playlistid":' + str(xbmc.PLAYLIST_MUSIC) + ', "position":1}}')
-
         while True:
             len = self.playlist.size() - 1
             pos = self.playlist.getposition()
@@ -419,6 +419,7 @@ class Pandoki(object):
 #
 #        if xbmcvfs.exists(path):
 #            xbmcvfs.delete(path)
+
 
     def Seed(self, song):
         result = self.pithos.search("%s by %s" % (song['title'], song['artist']))[0]
@@ -576,7 +577,7 @@ class Pandoki(object):
     
         cch = xbmc.translatePath(Val('cache')).decode("utf-8")
         exp = time.time() - (float(Val('expire')) * 3600.0)
-        reg = re.compile('^.*\.m4a')
+        reg = re.compile('^.*\.(m4a|mp3)')
 
         (dirs, list) = xbmcvfs.listdir(cch)
 
