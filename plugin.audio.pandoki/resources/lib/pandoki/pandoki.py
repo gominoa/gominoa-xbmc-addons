@@ -210,6 +210,7 @@ class Pandoki(object):
         dur = song['duration'] * 1000
         res = musicbrainzngs.search_recordings(limit = 1, query = song['title'], artist = song['artist'], release = song['album'], qdur = str(dur))['recording-list'][0]
         sco = res['ext:score']
+        song['number'] = res['release-list'][0]['medium-list'][1]['track-list'][0]['number']
 
         if sco != '100': return False
         Log("Tag%4s%% %s '%s - %s'" % (sco, song['id'][:4], song['artist'], song['title']))
@@ -217,6 +218,7 @@ class Pandoki(object):
         if song['encoding'] == 'm4a':
             tag = MP4(path)
             tag['----:com.apple.iTunes:MusicBrainz Track Id'] = res['id']
+            tag['trkn']    = song['number']
             tag['\xa9ART'] = song['artist']
             tag['\xa9alb'] = song['album']
             tag['\xa9nam'] = song['title']
@@ -225,9 +227,10 @@ class Pandoki(object):
         elif song['encoding'] == 'mp3':
             tag = MP3(path, ID3 = EasyID3)
             tag['musicbrainz_trackid'] = res['id']
-            tag['artist'] = song['artist']
-            tag['album']  = song['album']
-            tag['title']  = song['title']
+            tag['tracknumber'] = song['number']
+            tag['artist']      = song['artist']
+            tag['album']       = song['album']
+            tag['title']       = song['title']
             tag.save()
 
         return True
@@ -236,7 +239,6 @@ class Pandoki(object):
     def Save(self, song):
         if (song['title'] == 'Advertisement') or (song.get('save')): return
 
-        dst = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.%s" % (Val('library'), song['artist'], song['artist'], song['album'], song['artist'], song['title'], song['encoding']))).decode("utf-8")
         dir = xbmc.translatePath(("%s/%s/%s - %s"            % (Val('library'), song['artist'], song['artist'], song['album']))).decode("utf-8")
         alb = xbmc.translatePath(("%s/%s/%s - %s/folder.jpg" % (Val('library'), song['artist'], song['artist'], song['album']))).decode("utf-8")
         art = xbmc.translatePath(("%s/%s/folder.jpg"         % (Val('library'), song['artist']))).decode("utf-8")
@@ -247,6 +249,8 @@ class Pandoki(object):
             return
 
         if self.Tag(song, tmp):
+            dst = xbmc.translatePath(("%s/%s/%s - %s/%02d. %s - %s.%s" % (Val('library'), song['artist'], song['artist'], song['album'], int(song['number']), song['artist'], song['title'], song['encoding']))).decode("utf-8")
+
             xbmcvfs.mkdirs(dir)
             xbmcvfs.copy(tmp, dst)
 
@@ -263,7 +267,7 @@ class Pandoki(object):
 
     def Hook(self, song, size, totl):
         if totl in (341980, 340554, 173310):	# empty song cause requesting to fast
-            self.Msg('To Many Songs Requested')
+            self.Msg('Too Many Songs Requested')
             Log("Fetch MT %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
             return False
 
@@ -602,4 +606,5 @@ class Pandoki(object):
             self.List()
 
         Log('Exit  OK', xbmc.LOGNOTICE)
+        Prop('run', None)
 
