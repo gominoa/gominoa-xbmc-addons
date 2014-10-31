@@ -1,6 +1,6 @@
 import collections, re, socket, sys, threading, time, urllib, urllib2
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin, xbmcvfs
-import musicbrainzngs, pithos
+import asciidamnit, musicbrainzngs, pithos
 
 from mutagen.mp4 import MP4
 from mutagen.mp3 import MP3
@@ -206,73 +206,73 @@ class Pandoki(object):
                 return s
 
 
-    def Tag(self, song, path):
-        dur = song['duration'] * 1000
-        res = musicbrainzngs.search_recordings(limit = 1, query = song['title'], artist = song['artist'], release = song['album'], qdur = str(dur))['recording-list'][0]
-        sco = res['ext:score']
-        song['number'] = res['release-list'][0]['medium-list'][1]['track-list'][0]['number']
+    def Tag(self, song):
+        try:
+            res = musicbrainzngs.search_recordings(limit = 1, query = song['title'], artist = song['artist'], release = song['album'], qdur = str(song['duration'] * 1000))['recording-list'][0]
+            song['number'] = int(res['release-list'][0]['medium-list'][1]['track-list'][0]['number'])
+            song['count']  =     res['release-list'][0]['medium-list'][1]['track-count']
+            song['score']  =     res['ext:score']
+            song['brain']  =     res['id']
 
-        if sco != '100': return False
-        Log("Tag%4s%% %s '%s - %s'" % (sco, song['id'][:4], song['artist'], song['title']))
+        except:
+            song['score']  = '0'
+
+        Log("Tag%4s%% %s '%s - %s'" % (song['score'], song['id'][:4], song['artist'], song['title']))
+
+
+    def Save(self, song):
+        if (song['title'] == 'Advertisement') or (song.get('save')): return
+
+        tmp = "%s.tmp" % song['path']
+        if not xbmcvfs.copy(song['path_cch'], tmp):
+            Log("Save BAD %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
+            return
+
+        self.Tag(song)
+        if song['score'] != '100':
+            xbmcvfs.delete(tmp)
+            return
 
         if song['encoding'] == 'm4a':
-            tag = MP4(path)
-            tag['----:com.apple.iTunes:MusicBrainz Track Id'] = res['id']
-            tag['trkn']    = song['number']
+            tag = MP4(tmp)
+            tag['----:com.apple.iTunes:MusicBrainz Track Id'] = song['brain']
+            tag['trkn']    = [( song['number'], song['count'] )]
             tag['\xa9ART'] = song['artist']
             tag['\xa9alb'] = song['album']
             tag['\xa9nam'] = song['title']
             tag.save()
 
         elif song['encoding'] == 'mp3':
-            tag = MP3(path, ID3 = EasyID3)
-            tag['musicbrainz_trackid'] = res['id']
-            tag['tracknumber'] = song['number']
+            tag = MP3(tmp, ID3 = EasyID3)
+            tag['musicbrainz_trackid'] = song['brain']
+            tag['tracknumber'] = "%d/%d" % (song['number'], song['count'])
             tag['artist']      = song['artist']
             tag['album']       = song['album']
             tag['title']       = song['title']
             tag.save()
 
-        return True
-
-
-    def Save(self, song):
-        if (song['title'] == 'Advertisement') or (song.get('save')): return
-
-        dir = xbmc.translatePath(("%s/%s/%s - %s"            % (Val('library'), song['artist'], song['artist'], song['album']))).decode("utf-8")
-        alb = xbmc.translatePath(("%s/%s/%s - %s/folder.jpg" % (Val('library'), song['artist'], song['artist'], song['album']))).decode("utf-8")
-        art = xbmc.translatePath(("%s/%s/folder.jpg"         % (Val('library'), song['artist']))).decode("utf-8")
-        tmp = "%s.tmp" % song['path']
-
-        if not xbmcvfs.copy(song['path'], tmp):
-            Log("Save BAD %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
-            return
-
-        if self.Tag(song, tmp):
-            dst = xbmc.translatePath(("%s/%s/%s - %s/%02d. %s - %s.%s" % (Val('library'), song['artist'], song['artist'], song['album'], int(song['number']), song['artist'], song['title'], song['encoding']))).decode("utf-8")
-
-            xbmcvfs.mkdirs(dir)
-            xbmcvfs.copy(tmp, dst)
-
-            try:
-                if not xbmcvfs.exists(alb): urllib.urlretrieve(song['art'], alb)
-                if not xbmcvfs.exists(art): urllib.urlretrieve(song['art'], art)
-            except (IOError, UnicodeDecodeError): pass
-
-            song['save'] = dst
-            Log("Save  OK %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']), xbmc.LOGNOTICE)
-
+        xbmcvfs.mkdirs(song['path_dir'])
+        xbmcvfs.copy(tmp, song['path_lib'])
         xbmcvfs.delete(tmp)
+
+        try:
+            if not xbmcvfs.exists(song['path_alb']): urllib.urlretrieve(song['art'], song['path_alb'])
+            if not xbmcvfs.exists(song['path_art']): urllib.urlretrieve(song['art'], song['path_art'])
+        except (IOError, UnicodeDecodeError):
+            Log("Save ART %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
+
+        song['save'] = True
+        Log("Save  OK %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']), xbmc.LOGNOTICE)
 
 
     def Hook(self, song, size, totl):
         if totl in (341980, 340554, 173310):	# empty song cause requesting to fast
             self.Msg('Too Many Songs Requested')
-            Log("Fetch MT %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
+            Log("Cache MT %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
             return False
 
         if (song['title'] != 'Advertisement') and (totl <= int(Val('adsize')) * 1024):
-            Log("Fetch AD %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
+            Log("Cache AD %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
 
             song['artist'] = Val('name')
             song['album']  = Val('description')
@@ -291,9 +291,9 @@ class Pandoki(object):
 
 
     def Open(self, song):
-        path = song['path']
+        path = song['path_cch']
+        temp = "%s.tmp" % path
         file = open(path, 'wb', 0)
-        temp = "%s.tmp" % song['path']
 
         while not xbmcvfs.copy(path, temp):
             file.close()
@@ -318,6 +318,9 @@ class Pandoki(object):
         Log("%8d %s '%s - %s'" % (totl, song['id'][:4], song['artist'], song['title']))
 
         cont = self.Hook(song, size, totl)
+        if not cont:
+            return
+
         file = self.Open(song)
 
         while (cont) and (size < totl) and (not xbmc.abortRequested) and (not self.abort):
@@ -335,7 +338,7 @@ class Pandoki(object):
 
         if (not cont) or (size != totl):
             xbmc.sleep(3000)
-            xbmcvfs.delete(song['path'])
+            xbmcvfs.delete(song['path_cch'])
             Log("Cache RM %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
 
         elif (Val('mode') == '1') and (size == totl):
@@ -346,17 +349,15 @@ class Pandoki(object):
 
 
     def Fetch(self, song):
-        lib = xbmc.translatePath(("%s/%s/%s - %s/%s - %s.%s" % (Val('library'), song['artist'], song['artist'], song['album'], song['artist'], song['title'], song['encoding']))).decode("utf-8")
-        cch = xbmc.translatePath(("%s/%s - %s.%s" % (Val('cache'), song['artist'], song['title'], song['encoding']))).decode("utf-8")
-
-        if xbmcvfs.exists(lib):			# Found in Library
+        if xbmcvfs.exists(song['path_lib']):	# Found in Library
             Log("Song LIB %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
-            song['path'] = song['save'] = lib
+            song['path'] = song['path_lib']
+            song['save'] = True
             self.Queue(song)
 
-        elif xbmcvfs.exists(cch):		# Found in Cache
+        elif xbmcvfs.exists(song['path_cch']):	# Found in Cache
             Log("Song CCH %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
-            song['path'] = cch
+            song['path'] = song['path_cch']
             self.Queue(song)
 
         elif Val('mode') == '0':		# Stream Only
@@ -366,17 +367,21 @@ class Pandoki(object):
 
         else:					# Cache / Save
             Log("Song GET %s '%s - %s'" % (song['id'][:4], song['artist'], song['title']))
-            song['path'] = cch
+            song['path'] = song['path_cch']
             self.Cache(song)
 
 
-    def Strip(self, song):
+    def Path(self, song):
         badc           = '\\/?%*:|"<>.'		# remove bad filename chars
         song['artist'] = ''.join(c for c in song['artist'] if c not in badc)
         song['album']  = ''.join(c for c in song['album']  if c not in badc)
         song['title']  = ''.join(c for c in song['title']  if c not in badc)
 
-        return song
+        song['path_cch'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s - %s.%s"            % (Val('cache'),   song['artist'], song['title'],  song['encoding'])))
+        song['path_dir'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s"            % (Val('library'), song['artist'], song['artist'], song['album'])))
+        song['path_lib'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/%s - %s.%s" % (Val('library'), song['artist'], song['artist'], song['album'], song['artist'], song['title'], song['encoding'])))
+        song['path_alb'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/folder.jpg" % (Val('library'), song['artist'], song['artist'], song['album'])))
+        song['path_art'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/folder.jpg"         % (Val('library'), song['artist']))) #.decode("utf-8")
 
 
     def Fill(self):
@@ -396,26 +401,11 @@ class Pandoki(object):
             return
 
         for song in songs:
-            song = self.Strip(song) 
+            self.Path(song)
             threading.Timer(0, self.Fetch, (song,)).start()
 
         self.wait['fill'] = time.time() + 60
         Log("Fill  OK %s '%s'" % (self.Station()['id'][-4:], self.Station()['name']))
-
-
-    def Shrink(self):
-        max = int(Val('history'))
-        while (max >= 5) and (self.playlist.size() > max) and (self.playlist.getposition() > 0):
-            xbmc.executeJSONRPC('{"jsonrpc":"2.0", "id":1, "method":"Playlist.Remove", "params":{"playlistid":' + str(xbmc.PLAYLIST_MUSIC) + ', "position":0}}')
-
-
-    def Trunc(self):
-        while True:
-            len = self.playlist.size() - 1
-            pos = self.playlist.getposition()
-            if len > pos:
-                xbmc.executeJSONRPC('{"jsonrpc":"2.0", "id":1, "method":"Playlist.Remove", "params":{"playlistid":' + str(xbmc.PLAYLIST_MUSIC) + ', "position":' + str(len) + '}}')
-            else: break
 
 
 #    def Purge(self, song):
@@ -515,10 +505,8 @@ class Pandoki(object):
         if (id != 'mesg') and (left == 0):
             self.Msg("Queueing %s" % self.Station()['name'])
 
-        if ((skip) or (id == 'mesg')) and (left > 0):
+        if (skip) and (id) and (left > 0):
             self.player.playnext()
-
-#        Log("List  OK %s '%d / %d'" % (self.token[:4], pos + 1, len))
 
 
     def Deque(self):
@@ -534,7 +522,9 @@ class Pandoki(object):
             self.player.play(self.playlist)
             self.once = False 
 
-        self.Shrink()
+        max = int(Val('history'))
+        while (max >= 5) and (self.playlist.size() > max) and (self.playlist.getposition() > 0):
+            xbmc.executeJSONRPC('{"jsonrpc":"2.0", "id":1, "method":"Playlist.Remove", "params":{"playlistid":' + str(xbmc.PLAYLIST_MUSIC) + ', "position":0}}')
 
         if xbmcgui.getCurrentWindowId() == 10500:
             xbmc.executebuiltin("Container.Refresh")
@@ -544,7 +534,13 @@ class Pandoki(object):
         if token != self.token:
             station = self.Station(token)
             self.wait['fill'] = 0
-            self.Trunc()
+
+            while True:
+                len = self.playlist.size() - 1
+                pos = self.playlist.getposition()
+                if len > pos:
+                    xbmc.executeJSONRPC('{"jsonrpc":"2.0", "id":1, "method":"Playlist.Remove", "params":{"playlistid":' + str(xbmc.PLAYLIST_MUSIC) + ', "position":' + str(len) + '}}')
+                else: break
 
             self.Msg("Queueing %s" % station['name'])
             Log("Play  OK %s '%s'" % (token[-4:], station['name']))
