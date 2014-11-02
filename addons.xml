@@ -38,26 +38,28 @@
 </addon>
 
 <addon id="plugin.audio.pandoki"
-    name="Pandoki"
-    version="0.5.5"
-    provider-name="gominoa">
-    <requires>
-        <import addon="xbmc.python" version="2.1.0"/>
-    </requires>
-    <extension point="xbmc.python.pluginsource" library="default.py">
-        <provides>audio</provides>
-    </extension>
-    <extension point="xbmc.addon.metadata">
-	<summary lang="en">Pandora Internet Radio</summary>
-	<description lang="en">Pandora Internet Radio</description>
-	<disclaimer lang="en">Ain't my fault</disclaimer>
-	<language></language>
-	<platform>all</platform>
-	<license>GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007</license>
-	<forum>http://forum.xbmc.org/showthread.php?tid=205547</forum>
-	<website></website>
-	<email></email>
-	<source>https://github.com/gominoa/gominoa-xbmc-addons</source>
-    </extension>
+	name="Pandoki"
+	version="0.5.6"
+	provider-name="gominoa">
+	<requires>
+		<import addon="xbmc.python" version="2.1.0"/>
+		<import addon="script.module.mutagen" version="1.22.0"/>
+		<import addon="script.module.requests" version="2.3.0"/>
+	</requires>
+	<extension point="xbmc.python.pluginsource" library="default.py">
+		<provides>audio</provides>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en">Pandora Internet Radio</summary>
+		<description lang="en">Pandora Internet Radio</description>
+		<disclaimer lang="en">Ain't my fault</disclaimer>
+		<language></language>
+		<platform>all</platform>
+		<license>GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007</license>
+		<forum>http://forum.xbmc.org/showthread.php?tid=205547</forum>
+		<website></website>
+		<email></email>
+		<source>https://github.com/gominoa/gominoa-xbmc-addons</source>
+	</extension>
 </addon>
 </addons>

@@ -73,7 +73,7 @@ class Pandoki(object):
 
         elif proxy == '2':	# Custom
             http = "http://%s:%s@%s:%s" % (Val('proxy_user'), Val('proxy_pass'), Val('proxy_host'), Val('proxy_port'))
-            hand = urllib2.ProxyHandler({ 'http' : http })
+            hand = urllib2.ProxyHandler({ 'http' : http, 'https' : http })
             open = urllib2.build_opener(hand)
 
         return open
