@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
 	<category                                      label="Profile">
-		<setting id="prof"       type="enum"   label="Account"          default="0"     values="1|3|2"/>
+		<setting id="prof"       type="enum"   label="Account"          default="0"     values="0|1|2"/>
 		<setting id="username0"  type="text"   label="Username (email)"                 visible="eq(-1,0)"/>
 		<setting id="password0"  type="text"   label="Password"                         visible="eq(-2,0)" option="hidden"/>
 		<setting id="one0"       type="bool"   label="Pandora One"      default="false" visible="eq(-3,0)"/>
