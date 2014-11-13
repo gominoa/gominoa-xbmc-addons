@@ -228,7 +228,7 @@ class Pithos(object):
 
             song = { 'id' : s['songIdentity'], 'token' : s['trackToken'], 'station' : s['stationId'], 'duration' : s.get('trackLength'),
                  'artist' : s['artistName'],   'album' : s['albumName'],    'title' : s['songName'],       'art' : s['albumArtUrl'],
-                 'url' : None, 'bitrate' : 64, 'encoding' : None, 'rating' : '3' }
+                 'url' : None, 'bitrate' : 64, 'encoding' : None, 'rating' : '' }
 
             while quality < 3:
                 if s['audioUrlMap'].get(qual[quality]):

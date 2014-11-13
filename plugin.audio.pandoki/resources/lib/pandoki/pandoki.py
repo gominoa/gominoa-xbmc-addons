@@ -453,11 +453,11 @@ class Pandoki(object):
         elif (song['rated'] == '1'):
             self.pithos.add_feedback(song['token'], False)
 
-        elif (song['rated'] == '0'):
-            self.pithos.add_feedback(song['token'], False)
+#        elif (song['rated'] == '0'):
+#            self.pithos.add_feedback(song['token'], False)
 #            self.Purge(song)
 
-        Log("Rate %d>%d %s '%s - %s'" % (int(song['rating']), int(song['rated']), song['id'][:4], song['artist'], song['title']))
+        Log("Rate %s>%s %s '%s - %s'" % (song['rating'], song['rated'], song['id'][:4], song['artist'], song['title']))
         song['rating'] = song['rated']
 
 
@@ -471,8 +471,6 @@ class Pandoki(object):
         for pos in range(0, self.playlist.size()):
             id = self.playlist[pos].getProperty("%s.id" % _id)
             rt = xbmc.getInfoLabel("MusicPlayer.Position(%d).Rating" % pos)
-
-            if id == 'mesg': continue
 
             if id in self.songs:
                 song = self.songs[id]
@@ -495,18 +493,19 @@ class Pandoki(object):
         if left < 2:
             self.Fill()
 
-        try: item = self.playlist[pos]
-        except RuntimeError: return
+#        try: item = self.playlist[pos]
+#        except RuntimeError: return
 
+        item = self.playlist[pos]
         id   = item.getProperty("%s.id" % _id)
         skip = xbmc.getInfoLabel("MusicPlayer.Position(%d).Rating" % pos)
-        skip = ((skip == '') or (int(skip) < 3)) and (xbmcgui.getCurrentWindowDialogId() != 10135)
+        skip = ((id == 'mesg') or (skip == '1') or (skip == '2')) and (xbmcgui.getCurrentWindowDialogId() != 10135)
 
-        if (id != 'mesg') and (left == 0):
-            self.Msg("Queueing %s" % self.Station()['name'])
-
-        if (skip) and (id) and (left > 0):
+        if   (left  > 0) and skip:
             self.player.playnext()
+
+        elif (left == 0) and (id != 'mesg'):
+            self.Msg("Queueing %s" % self.Station()['name'])
 
 
     def Deque(self):
@@ -516,7 +515,8 @@ class Pandoki(object):
         while len(self.queue) > 0:
             song = self.queue.popleft()
             self.Add(song)
-            self.songs[song['id']] = song
+            if song['id'] != 'mesg':
+                self.songs[song['id']] = song
 
         if self.once:
             self.player.play(self.playlist)
