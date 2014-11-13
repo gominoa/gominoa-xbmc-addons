@@ -459,7 +459,7 @@ class Pandoki(object):
 
     def Next(self):
         if time.time() < self.wait['next']: return
-        self.wait['next'] = time.time() + float(Val('prefetch')) + 1
+        self.wait['next'] = time.time() + float(Val('delay')) + 1
 
         self.Fill()
 
