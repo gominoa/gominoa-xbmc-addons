@@ -84,6 +84,7 @@ def pad(s, l):
 class Pithos(object):
     def __init__(self):
         self.opener = urllib2.build_opener()
+        self.stations = []
         pass
 
 
@@ -214,7 +215,7 @@ class Pithos(object):
         self.stations = []
 
         for s in self.json_call('user.getStationList', { 'includeStationArtUrl' : True })['stations']:
-            self.stations.append({ 'id' : s['stationId'], 'token' : s['stationToken'], 'name' : s['stationName'], 'art' : s.get('artUrl') })
+            self.stations.append({ 'id' : s['stationId'], 'token' : s['stationToken'], 'title' : s['stationName'], 'art' : s.get('artUrl') })
 
         return self.stations
 
@@ -228,7 +229,7 @@ class Pithos(object):
 
             song = { 'id' : s['songIdentity'], 'token' : s['trackToken'], 'station' : s['stationId'], 'duration' : s.get('trackLength'),
                  'artist' : s['artistName'],   'album' : s['albumName'],    'title' : s['songName'],       'art' : s['albumArtUrl'],
-                 'url' : None, 'bitrate' : 64, 'encoding' : None, 'rating' : '' }
+                 'url' : None, 'bitrate' : 64, 'encoding' : None } #, 'rating' : '' }
 
             while quality < 3:
                 if s['audioUrlMap'].get(qual[quality]):
@@ -238,7 +239,7 @@ class Pithos(object):
                     break
                 quality += 1
 
-            if s['songRating'] == 1: song['rating'] = '5'
+#            if s['songRating'] == 1: song['rating'] = '5'
             if song['encoding'] == 'aacplus': song['encoding'] = 'm4a'
 
             self.playlist.append(song)
@@ -259,13 +260,13 @@ class Pithos(object):
         self.json_call('user.sleepSong', {'trackToken': trackToken})
 
 
-    def search(self, query, songs = True, artists = False):
+    def search(self, query, artists = False):
         results = self.json_call('music.search', {'searchText': query})
         l = []
 
-        if songs:
-            for d in results['songs']:
-                l += [{ 'score' : d['score'], 'token' : d['musicToken'], 'artist' : d['artistName'], 'title' : d['songName'] }]
+        for d in results['songs']:
+            l += [{ 'score' : d['score'], 'token' : d['musicToken'], 'artist' : d['artistName'], 'title' : d['songName'] }]
+
         if artists:
             for d in results['artists']:
                 l += [{ 'score' : d['score'], 'token' : d['musicToken'], 'artist' : d['artistName'] }]
@@ -273,6 +274,46 @@ class Pithos(object):
         return sorted(l, key=lambda i: i['score'], reverse=True)
 
 
-    def add_seed(self, stationToken, musicToken):
-        self.json_call('station.addMusic', { 'stationToken' : stationToken, 'musicToken' : musicToken} )
+    def create_station(self, trackToken):
+        s = self.json_call('station.createStation', { 'musicToken' : musicToken })
+        self.stations.insert(1, { 'id' : s['stationId'], 'token' : s['stationToken'], 'title' : s['stationName'], 'art' : s.get('artUrl') })
+
+        return self.stations[1]
+
+
+    def branch_station(self, trackToken):
+        s = self.json_call('station.createStation', { 'trackToken' : trackToken, 'musicType' : 'song' })
+        self.stations.insert(1, { 'id' : s['stationId'], 'token' : s['stationToken'], 'title' : s['stationName'], 'art' : s.get('artUrl') })
+
+        return self.stations[1]
+
+
+    def rename_station(self, stationToken, stationName):
+        for s in self.stations:
+            if stationToken == s['token']:
+                self.json_call('station.renameStation', { 'stationToken': stationToken, 'stationName' : stationName })
+                s['title'] = stationName
+
+                return s
+        return None
+
+
+    def delete_station(self, stationToken):
+        for s in self.stations:
+            if stationToken == s['token']:
+                self.json_call('station.deleteStation', { 'stationToken': stationToken })
+                self.stations.remove(s)
+
+                return s
+        return None
+
+
+    def seed_station(self, stationToken, musicToken):
+        for s in self.stations:
+            if stationToken == s['token']:
+                self.json_call('station.addMusic', { 'stationToken' : stationToken, 'musicToken' : musicToken} )
+
+                return s
+        return None
+
 
