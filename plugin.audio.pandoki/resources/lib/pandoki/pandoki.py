@@ -17,7 +17,7 @@ _stamp	= str(time.time())
 def Log(msg, s = None, level = xbmc.LOGNOTICE):
     if s and s.get('artist'): xbmc.log("%s %s %s '%s - %s'" % (_id, msg, s['token'][-4:], s['artist'], s['title']), level) # song
     elif s:                   xbmc.log("%s %s %s '%s'"      % (_id, msg, s['token'][-4:], s['title']), level)              # station
-    else:                     xbmc.log("%s %s" %              (_id, msg), level)
+    else:                     xbmc.log("%s %s"              % (_id, msg), level)
 
 
 def Val(key, val = None):

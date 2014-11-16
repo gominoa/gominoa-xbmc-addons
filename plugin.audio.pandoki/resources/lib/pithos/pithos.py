@@ -274,7 +274,7 @@ class Pithos(object):
         return sorted(l, key=lambda i: i['score'], reverse=True)
 
 
-    def create_station(self, trackToken):
+    def create_station(self, musicToken):
         s = self.json_call('station.createStation', { 'musicToken' : musicToken })
         self.stations.insert(1, { 'id' : s['stationId'], 'token' : s['stationToken'], 'title' : s['stationName'], 'art' : s.get('artUrl') })
 
@@ -291,7 +291,7 @@ class Pithos(object):
     def rename_station(self, stationToken, stationName):
         for s in self.stations:
             if stationToken == s['token']:
-                self.json_call('station.renameStation', { 'stationToken': stationToken, 'stationName' : stationName })
+                self.json_call('station.renameStation', { 'stationToken' : stationToken, 'stationName' : stationName })
                 s['title'] = stationName
 
                 return s
@@ -301,7 +301,7 @@ class Pithos(object):
     def delete_station(self, stationToken):
         for s in self.stations:
             if stationToken == s['token']:
-                self.json_call('station.deleteStation', { 'stationToken': stationToken })
+                self.json_call('station.deleteStation', { 'stationToken' : stationToken })
                 self.stations.remove(s)
 
                 return s
