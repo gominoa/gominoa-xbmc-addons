@@ -23,8 +23,8 @@ search	= query.get('search')[0] if query.get('search') else None
 create	= query.get('create')[0] if query.get('create') else None
 rename	= query.get('rename')[0] if query.get('rename') else None
 delete	= query.get('delete')[0] if query.get('delete') else None
+title	= query.get( 'title')[0] if query.get('title')  else None
 thumb	= query.get( 'thumb')[0] if query.get('thumb')  else None
-name	= query.get(  'name')[0] if query.get('name')   else None
 play	= query.get(  'play')[0] if query.get('play')   else None
 
 
@@ -39,21 +39,21 @@ if search:
         search = xbmcgui.Dialog().input('%s - Search' % Val('name'), Prop('search'))
         Prop('search', search)
 
-    Prop('handle', handle)
+    Prop('handle',  handle)
     Wait('action', 'search')
 
 elif create:
-    Prop('create', create)
+    Prop('create',  create)
     Wait('action', 'create')
 
 elif rename:
-    name = xbmcgui.Dialog().input('%s - Search' % Val('name'), name)
-    Prop('name', name)
-    Prop('rename', rename)
+    title = xbmcgui.Dialog().input('%s - Search' % Val('name'), title)
+    Prop('title',   title)
+    Prop('rename',  rename)
     Wait('action', 'rename')
 
-elif delete and xbmcgui.Dialog().yesno('%s - Delete Station' % Val('name'), 'Are you sure you want to delete?', '', name):
-    Prop('delete', delete)
+elif delete and xbmcgui.Dialog().yesno('%s - Delete Station' % Val('name'), 'Are you sure you want to delete?', '', title):
+    Prop('delete',  delete)
     Wait('action', 'delete')
 
 elif thumb:
@@ -62,11 +62,11 @@ elif thumb:
     xbmc.executebuiltin("Container.Refresh")            
 
 elif play:
-    Prop('play', play)
+    Prop('play',    play)
     Wait('action', 'play')
 
 else:
-    Prop('handle', handle)
+    Prop('handle',  handle)
     Wait('action', 'dir')
 
 if run:    run.Loop()

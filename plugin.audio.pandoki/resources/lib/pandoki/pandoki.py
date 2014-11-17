@@ -151,9 +151,10 @@ class Pandoki(object):
             li.setIconImage(art)
             li.setThumbnailImage(art)
 
-            li.addContextMenuItems([('Rename Station', "RunPlugin(plugin://%s/?%s)" % (_id, urllib.urlencode({ 'rename' : s['token'], 'name' : s['title'] }))),
-                                    ('Delete Station', "RunPlugin(plugin://%s/?%s)" % (_id, urllib.urlencode({ 'delete' : s['token'], 'name' : s['title'] }))),
-                                    ('Select Thumb',   "RunPlugin(plugin://%s/?%s)" % (_id, urllib.urlencode({  'thumb' : s['token'], 'name' : s['title'] }))), ])
+            title = asciidamnit.asciiDammit(s['title'])
+            li.addContextMenuItems([('Rename Station', "RunPlugin(plugin://%s/?%s)" % (_id, urllib.urlencode({ 'rename' : s['token'], 'title' : title }))),
+                                    ('Delete Station', "RunPlugin(plugin://%s/?%s)" % (_id, urllib.urlencode({ 'delete' : s['token'], 'title' : title }))),
+                                    ('Select Thumb',   "RunPlugin(plugin://%s/?%s)" % (_id, urllib.urlencode({  'thumb' : s['token'], 'title' : title }))), ])
 
             xbmcplugin.addDirectoryItem(int(handle), "%s?%s" % (_base, urllib.urlencode({ 'play' : s['token'] })), li)
 
@@ -456,17 +457,17 @@ class Pandoki(object):
         self.songs = songs
 
 
-    def Path(self, song):
+    def Path(self, s):
         badc           = '\\/?%*:|"<>.'		# remove bad filename chars
-        song['artist'] = ''.join(c for c in song['artist'] if c not in badc)
-        song['album']  = ''.join(c for c in song['album']  if c not in badc)
-        song['title']  = ''.join(c for c in song['title']  if c not in badc)
+        s['artist'] = ''.join(c for c in s['artist'] if c not in badc)
+        s['album']  = ''.join(c for c in s['album']  if c not in badc)
+        s['title']  = ''.join(c for c in s['title']  if c not in badc)
 
-        song['path_cch'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s - %s.%s"            % (Val('cache'),   song['artist'], song['title'],  song['encoding'])))
-        song['path_dir'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s"            % (Val('library'), song['artist'], song['artist'], song['album'])))
-        song['path_lib'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/%s - %s.%s" % (Val('library'), song['artist'], song['artist'], song['album'], song['artist'], song['title'], song['encoding'])))
-        song['path_alb'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/folder.jpg" % (Val('library'), song['artist'], song['artist'], song['album'])))
-        song['path_art'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/folder.jpg"         % (Val('library'), song['artist']))) #.decode("utf-8")
+        s['path_cch'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s - %s.%s"            % (Val('cache'),   s['artist'], s['title'],  s['encoding'])))
+        s['path_dir'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s"            % (Val('library'), s['artist'], s['artist'], s['album'])))
+        s['path_lib'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/%s - %s.%s" % (Val('library'), s['artist'], s['artist'], s['album'], s['artist'], s['title'], s['encoding'])))
+        s['path_alb'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/folder.jpg" % (Val('library'), s['artist'], s['artist'], s['album'])))
+        s['path_art'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/folder.jpg"         % (Val('library'), s['artist']))) #.decode("utf-8")
 
 
     def Fill(self):
@@ -604,9 +605,9 @@ class Pandoki(object):
         xbmc.executebuiltin("Container.Refresh")
 
 
-    def Rename(self, token, name):
+    def Rename(self, token, title):
         self.Stations()
-        station = self.pithos.rename_station(token, name)
+        station = self.pithos.rename_station(token, title)
 
         Log('Rename  ', station)
         xbmc.executebuiltin("Container.Refresh")
@@ -627,7 +628,7 @@ class Pandoki(object):
             self.Create(Prop('create'))
 
         elif act == 'rename':
-            self.Rename(Prop('rename'), Prop('name'))
+            self.Rename(Prop('rename'), Prop('title'))
 
         elif act == 'delete':
             self.Delete(Prop('delete'))
