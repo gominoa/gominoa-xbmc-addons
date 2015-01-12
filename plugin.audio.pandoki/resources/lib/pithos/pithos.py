@@ -85,6 +85,7 @@ class Pithos(object):
     def __init__(self):
         self.opener = urllib2.build_opener()
         self.stations = []
+        self.sni = False
         pass
 
 
@@ -125,19 +126,27 @@ class Pithos(object):
         if blowfish:
             data = self.pandora_encrypt(data)
 
-        try:
-            req = urllib2.Request(url, data, {'User-agent': USER_AGENT, 'Content-type': 'text/plain'})
-            response = self.opener.open(req, timeout=HTTP_TIMEOUT)
-            text = response.read()
-        except urllib2.HTTPError as e:
-            logging.error("HTTP error: %s", e)
-            raise PithosNetError(str(e))
-        except urllib2.URLError as e:
-            logging.error("Network error: %s", e)
-            if e.reason[0] == 'timed out':
-                raise PithosTimeout("Network error", submsg="Timeout")
-            else:
-                raise PithosNetError("Network error", submsg=e.reason[1])
+        if self.sni:
+            try:
+                response = self.opener.urlopen('POST', url, headers={'User-agent': USER_AGENT, 'Content-type': 'text/plain'}, body=data)
+                text = response.data
+            except:
+                logging.error("urllib3 error")
+                raise PithosNetError('urllib3 error')
+        else:
+            try:
+                req = urllib2.Request(url, data, {'User-agent': USER_AGENT, 'Content-type': 'text/plain'})
+                response = self.opener.open(req, timeout=HTTP_TIMEOUT)
+                text = response.read()
+            except urllib2.HTTPError as e:
+                logging.error("HTTP error: %s", e)
+                raise PithosNetError(str(e))
+            except urllib2.URLError as e:
+                logging.error("Network error: %s", e)
+                if e.reason[0] == 'timed out':
+                    raise PithosTimeout("Network error", submsg="Timeout")
+                else:
+                    raise PithosNetError("Network error", submsg=e.reason.strerror)
 
         logging.debug(text)
 
@@ -179,7 +188,8 @@ class Pithos(object):
             return tree['result']
 
 
-    def set_url_opener(self, opener):
+    def set_url_opener(self, opener, sni):
+        self.sni = sni
         self.opener = opener
 
 

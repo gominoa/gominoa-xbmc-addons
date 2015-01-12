@@ -2,6 +2,15 @@ import collections, re, socket, sys, threading, time, urllib, urllib2
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin, xbmcvfs
 import asciidamnit, musicbrainzngs, pithos
 
+try:
+    import urllib3
+    import urllib3.contrib.pyopenssl
+    urllib3.contrib.pyopenssl.inject_into_urllib3()
+    _urllib3 = True
+except ImportError:
+    _urllib3 = False
+    pass
+
 from mutagen.mp3 import MP3
 from mutagen.easyid3 import EasyID3
 from mutagen.easymp4 import EasyMP4
@@ -57,7 +66,7 @@ class Pandoki(object):
         self.wait	= { 'auth' : 0, 'stations' : 0, 'flush' : 0, 'scan' : 0, 'next' : 0 }
         self.silent	= xbmc.translatePath("special://home/addons/%s/resources/media/silent.m4a" % _id)
 
-        musicbrainzngs.set_useragent("xbmc.%s" % _id, Val('version'))
+        musicbrainzngs.set_useragent("kodi.%s" % _id, Val('version'))
         xbmcvfs.mkdirs(xbmc.translatePath(Val('cache')).decode("utf-8"))
         xbmcvfs.mkdirs(xbmc.translatePath(Val('library')).decode("utf-8"))
 
@@ -65,19 +74,24 @@ class Pandoki(object):
     def Proxy(self):
         proxy = Val('proxy')
 
-        if   proxy == '0':	# Global
-            open = urllib2.build_opener()
-
-        elif proxy == '1':	# None
+        if proxy == '1':	# None
             hand = urllib2.ProxyHandler({})
-            open = urllib2.build_opener(hand)
+            return urllib2.build_opener(hand)
+
+        elif proxy == '0':	# Global
+            if (Val('sni') == 'true'):
+                return urllib3.PoolManager()
+            else:
+                return urllib2.build_opener()
 
         elif proxy == '2':	# Custom
             http = "http://%s:%s@%s:%s" % (Val('proxy_user'), Val('proxy_pass'), Val('proxy_host'), Val('proxy_port'))
-            hand = urllib2.ProxyHandler({ 'http' : http, 'https' : http })
-            open = urllib2.build_opener(hand)
 
-        return open
+            if (Val('sni') == 'true'):
+                return urllib3.ProxyManager(http)
+            else:
+                hand = urllib2.ProxyHandler({ 'http' : http, 'https' : http })
+                return urllib2.build_opener(hand)
 
 
     def Auth(self):
@@ -89,7 +103,7 @@ class Pandoki(object):
 
         if time.time() < self.wait['auth']: return True
 
-        self.pithos.set_url_opener(self.Proxy())
+        self.pithos.set_url_opener(self.Proxy(), (Val('sni') == 'true'))
 
         try: self.pithos.connect(Val('one' + p), Val('username' + p), Val('password' + p))
         except pithos.PithosError:
@@ -102,6 +116,13 @@ class Pandoki(object):
 
 
     def Login(self):
+        if (Val('sni') == 'true'):
+            if not (_urllib3):
+                if xbmcgui.Dialog().yesno(Val('name'), 'SNI Support not found', 'Please install: pyOpenSSL/ndg-httpsclient/pyasn1', 'Check Settings?'):
+                    xbmcaddon.Addon().openSettings()
+                else:
+                    exit()
+
         while not self.Auth():
             if xbmcgui.Dialog().yesno(Val('name'), '          Login Failed', 'Bad User / Pass / Proxy', '       Check Settings?'):
                 xbmcaddon.Addon().openSettings()
@@ -147,7 +168,8 @@ class Pandoki(object):
             if self.station == s: li.select(True)
 
             art = Val("art-%s" % s['token'])
-            if not art: art = s['art']
+            if not art: art = s.get('art', Val('icon'))
+
             li.setIconImage(art)
             li.setThumbnailImage(art)
 
@@ -263,7 +285,11 @@ class Pandoki(object):
         tag['artist']              = song['artist']
         tag['album']               = song['album']
         tag['title']               = song['title']
-        tag.save()
+
+        if song['encoding'] == 'mp3':
+            tag.save(v2_version = 3)
+        else:
+            tag.save()
 
         xbmcvfs.mkdirs(song['path_dir'])
         xbmcvfs.copy(tmp, song['path_lib'])
@@ -564,6 +590,8 @@ class Pandoki(object):
 
 
     def Play(self, token):
+        last = self.station
+
         if self.Tune(token):
             self.Fill()
 
@@ -572,11 +600,11 @@ class Pandoki(object):
                 pos = self.playlist.getposition()
                 if len > pos:
                     item = self.playlist[len]
-                    tokn  = item.getProperty("%s.token" % _id)
+                    tokn = item.getProperty("%s.token" % _id)
 
-                    if (self.station) and (tokn in self.songs):
+                    if (last) and (tokn in self.songs):
                         self.songs[tokn]['keep'] = True
-                        self.ahead[self.station['token']].appendleft(self.songs[tokn])
+                        self.ahead[last['token']].appendleft(self.songs[tokn])
 
                     xbmc.executeJSONRPC('{"jsonrpc":"2.0", "id":1, "method":"Playlist.Remove", "params":{"playlistid":' + str(xbmc.PLAYLIST_MUSIC) + ', "position":' + str(len) + '}}')
                 else: break
@@ -641,7 +669,7 @@ class Pandoki(object):
             if (self.once) and (Val('autoplay') == 'true') and (Val('station' + self.prof)):
                 self.Play(Val('station' + self.prof))
 
-        Prop('action', None)
+        Prop('action', '')
         Prop('run', str(time.time()))
 
 
@@ -668,5 +696,5 @@ class Pandoki(object):
             self.Scan()
 
         Log('Exit  OK', level = xbmc.LOGNOTICE)
-        Prop('run', None)
+        Prop('run', '0')
 
