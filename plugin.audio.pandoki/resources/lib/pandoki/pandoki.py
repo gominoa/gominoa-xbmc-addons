@@ -79,7 +79,7 @@ class Pandoki(object):
             return urllib2.build_opener(hand)
 
         elif proxy == '0':	# Global
-            if (Val('sni') == 'true'):
+            if (Val('sni') == 'true') and _urllib3:
                 return urllib3.PoolManager()
             else:
                 return urllib2.build_opener()
@@ -87,7 +87,7 @@ class Pandoki(object):
         elif proxy == '2':	# Custom
             http = "http://%s:%s@%s:%s" % (Val('proxy_user'), Val('proxy_pass'), Val('proxy_host'), Val('proxy_port'))
 
-            if (Val('sni') == 'true'):
+            if (Val('sni') == 'true') and _urllib3:
                 return urllib3.ProxyManager(http)
             else:
                 hand = urllib2.ProxyHandler({ 'http' : http, 'https' : http })
@@ -116,12 +116,11 @@ class Pandoki(object):
 
 
     def Login(self):
-        if (Val('sni') == 'true'):
-            if not (_urllib3):
-                if xbmcgui.Dialog().yesno(Val('name'), 'SNI Support not found', 'Please install: pyOpenSSL/ndg-httpsclient/pyasn1', 'Check Settings?'):
-                    xbmcaddon.Addon().openSettings()
-                else:
-                    exit()
+        if (Val('sni') == 'true') and (not _urllib3):
+            if xbmcgui.Dialog().yesno(Val('name'), 'SNI Support not found', 'Please install: pyOpenSSL/ndg-httpsclient/pyasn1', 'Check Settings?'):
+                xbmcaddon.Addon().openSettings()
+            else:
+                exit()
 
         while not self.Auth():
             if xbmcgui.Dialog().yesno(Val('name'), '          Login Failed', 'Bad User / Pass / Proxy', '       Check Settings?'):
