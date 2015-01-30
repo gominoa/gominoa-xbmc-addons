@@ -157,9 +157,10 @@ class Pandoki(object):
     def Dir(self, handle):
         self.Login()
 
+        ic = Val('icon')
         li = xbmcgui.ListItem('New Station ...')
-        li.setIconImage(Val('icon'))
-        li.setThumbnailImage(Val('icon'))
+        li.setIconImage(ic)
+        li.setThumbnailImage(ic)
         xbmcplugin.addDirectoryItem(int(handle), "%s?search=hcraes" % _base, li, True)
 
         for s in self.Sorted():
@@ -167,7 +168,7 @@ class Pandoki(object):
             if self.station == s: li.select(True)
 
             art = Val("art-%s" % s['token'])
-            if not art: art = s.get('art', Val('icon'))
+            if not art: art = s.get('art', ic)
 
             li.setIconImage(art)
             li.setThumbnailImage(art)
@@ -338,7 +339,15 @@ class Pandoki(object):
 
 
     def Cache(self, song):
-        strm = self.Proxy().open(song['url'], timeout = 10)
+        try:
+            strm = self.Proxy().open(song['url'], timeout = 10)
+        except HTTPError:
+            self.wait['auth'] = 0
+            if not self.Auth():
+                Log("Cache ER", song)
+                return
+            strm = self.Proxy().open(song['url'], timeout = 10)
+
         totl = int(strm.headers['Content-Length'])
         size = 0
 
@@ -483,16 +492,18 @@ class Pandoki(object):
 
 
     def Path(self, s):
-        badc           = '\\/?%*:|"<>.'		# remove bad filename chars
+        lib  = Val('library')
+        badc = '\\/?%*:|"<>.'		# remove bad filename chars
+
         s['artist'] = ''.join(c for c in s['artist'] if c not in badc)
         s['album']  = ''.join(c for c in s['album']  if c not in badc)
         s['title']  = ''.join(c for c in s['title']  if c not in badc)
 
-        s['path_cch'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s - %s.%s"            % (Val('cache'),   s['artist'], s['title'],  s['encoding'])))
-        s['path_dir'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s"            % (Val('library'), s['artist'], s['artist'], s['album'])))
-        s['path_lib'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/%s - %s.%s" % (Val('library'), s['artist'], s['artist'], s['album'], s['artist'], s['title'], s['encoding'])))
-        s['path_alb'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/folder.jpg" % (Val('library'), s['artist'], s['artist'], s['album'])))
-        s['path_art'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/folder.jpg"         % (Val('library'), s['artist']))) #.decode("utf-8")
+        s['path_cch'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s - %s.%s"            % (Val('cache'), s['artist'], s['title'],  s['encoding'])))
+        s['path_dir'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s"            % (lib,          s['artist'], s['artist'], s['album'])))
+        s['path_lib'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/%s - %s.%s" % (lib,          s['artist'], s['artist'], s['album'], s['artist'], s['title'], s['encoding'])))
+        s['path_alb'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/folder.jpg" % (lib,          s['artist'], s['artist'], s['album'])))
+        s['path_art'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/folder.jpg"         % (lib,          s['artist']))) #.decode("utf-8")
 
 
     def Fill(self):
@@ -646,6 +657,10 @@ class Pandoki(object):
         if _stamp != Prop('stamp'):
             self.abort = True
             self.station = None
+            return
+
+        elif act == '':
+            Prop('run', str(time.time()))
             return
 
         elif act == 'search':
