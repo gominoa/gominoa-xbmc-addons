@@ -208,6 +208,9 @@ class Pandoki(object):
 
 
     def Add(self, song):
+        if song['token'] != 'mesg':
+            self.songs[song['token']] = song
+
         li = xbmcgui.ListItem(song['artist'], song['title'], song['art'], song['art'])
         li.setProperty("%s.token" % _id, song['token'])
         li.setInfo('music', self.Info(song))
@@ -265,7 +268,9 @@ class Pandoki(object):
 
 
     def Save(self, song):
-        if (Val('mode') in ('0', '3')) or (song['title'] == 'Advertisement') or (song.get('save')) or (not self.Tag(song)): return
+        if (song['title'] == 'Advertisement') or (song.get('saved')) or (not song.get('cached', False)): return
+        if (Val('mode') in ('0', '3')) or ((Val('mode') == '2') and (song.get('rated') not in ('3', '4', '5'))): return
+        if (not self.Tag(song)): return
 
         tmp = "%s.%s" % (song['path'], song['encoding'])
         if not xbmcvfs.copy(song['path_cch'], tmp):
@@ -294,7 +299,7 @@ class Pandoki(object):
         xbmcvfs.mkdirs(song['path_dir'])
         xbmcvfs.copy(tmp, song['path_lib'])
         xbmcvfs.delete(tmp)
-        song['save'] = True
+        song['saved'] = True
 
         if (not xbmcvfs.exists(song['path_alb'])) or (not xbmcvfs.exists(song['path_art'])):
             try:
@@ -377,6 +382,7 @@ class Pandoki(object):
             Log('Cache RM', song)
 
         else:
+            song['cached'] = True
             self.Save(song)
 
         Log('Cache OK', song)
@@ -464,7 +470,7 @@ class Pandoki(object):
 
 
     def Scan(self, rate = True):
-        if (rate) and ((time.time() < self.wait['scan']) or (xbmcgui.getCurrentWindowDialogId() == 10135)): return
+        if ((rate) and ((time.time() < self.wait['scan'])) or (xbmcgui.getCurrentWindowDialogId() == 10135)): return
         self.wait['scan'] = time.time() + 15
 
         songs = dict()
@@ -572,8 +578,6 @@ class Pandoki(object):
         while len(self.queue) > 0:
             song = self.queue.popleft()
             self.Add(song)
-            if song['token'] != 'mesg':
-                self.songs[song['token']] = song
 
         if self.once:
             self.player.play(self.playlist)
