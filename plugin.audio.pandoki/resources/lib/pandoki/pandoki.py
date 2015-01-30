@@ -1,6 +1,6 @@
 import collections, re, socket, sys, threading, time, urllib, urllib2
 import xbmc, xbmcaddon, xbmcgui, xbmcplugin, xbmcvfs
-import asciidamnit, musicbrainzngs, pithos
+import asciidamnit, musicbrainzngs, mypithos
 
 try:
     import urllib3
@@ -57,7 +57,7 @@ class Pandoki(object):
         self.station	= None
         self.stations	= None
         self.songs	= { }
-        self.pithos	= pithos.Pithos()
+        self.pithos	= mypithos.Pithos()
         self.player	= xbmc.Player()
         self.playlist	= xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
         self.ahead	= { }
@@ -106,7 +106,7 @@ class Pandoki(object):
         self.pithos.set_url_opener(self.Proxy(), (Val('sni') == 'true'))
 
         try: self.pithos.connect(Val('one' + p), Val('username' + p), Val('password' + p))
-        except pithos.PithosError:
+        except mypithos.PithosError:
             Log('Auth BAD')
             return False
 
@@ -516,8 +516,8 @@ class Pandoki(object):
             return
 
         try: songs = self.pithos.get_playlist(token, int(Val('quality')))
-        except (pithos.PithosTimeout, pithos.PithosNetError): pass
-        except (pithos.PithosAuthTokenInvalid, pithos.PithosAPIVersionError, pithos.PithosError) as e:
+        except (mypithos.PithosTimeout, mypithos.PithosNetError): pass
+        except (mypithos.PithosAuthTokenInvalid, mypithos.PithosAPIVersionError, mypithos.PithosError) as e:
             Log("%s, %s" % (e.message, e.submsg))
             self.Msg(e.message)
             self.abort = True
