@@ -470,7 +470,7 @@ class Pandoki(object):
 
 
     def Scan(self, rate = True):
-        if ((rate) and ((time.time() < self.wait['scan'])) or (xbmcgui.getCurrentWindowDialogId() == 10135)): return
+        if ((rate) and (time.time() < self.wait['scan'])) or (xbmcgui.getCurrentWindowDialogId() == 10135): return
         self.wait['scan'] = time.time() + 15
 
         songs = dict()
