@@ -19,13 +19,14 @@ def Wait(key, value):
 handle	= sys.argv[1]
 query	= urlparse.parse_qs(sys.argv[2][1:])
 
-search	= query.get('search')[0] if query.get('search') else None
-create	= query.get('create')[0] if query.get('create') else None
-rename	= query.get('rename')[0] if query.get('rename') else None
-delete	= query.get('delete')[0] if query.get('delete') else None
-title	= query.get( 'title')[0] if query.get('title')  else None
-thumb	= query.get( 'thumb')[0] if query.get('thumb')  else None
-play	= query.get(  'play')[0] if query.get('play')   else None
+search	= query.get('search')[0] if query.get('search')	else None
+create	= query.get('create')[0] if query.get('create')	else None
+rename	= query.get('rename')[0] if query.get('rename')	else None
+delete	= query.get('delete')[0] if query.get('delete')	else None
+title	= query.get( 'title')[0] if query.get('title')	else None
+thumb	= query.get( 'thumb')[0] if query.get('thumb')	else None
+rate	= query.get(  'rate')[0] if query.get('rate')	else None
+play	= query.get(  'play')[0] if query.get('play')	else None
 
 
 run = Prop('run') # only start up once
@@ -60,6 +61,10 @@ elif thumb:
     img = xbmcgui.Dialog().browseSingle(2, 'Select Thumb', 'files', useThumbs = True)
     Val("art-%s" % thumb, img)
     xbmc.executebuiltin("Container.Refresh")            
+
+elif rate:
+    Prop('rate',    rate)
+    Wait('action', 'rate')
 
 elif play:
     Prop('play',    play)

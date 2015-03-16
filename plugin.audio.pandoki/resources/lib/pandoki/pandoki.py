@@ -431,40 +431,71 @@ class Pandoki(object):
         Log('Branch  ', song)
 
 
-    def Rate(self, song):
-        Log("Rate %1s>%1s" % (song['rating'], song['rated']), song, xbmc.LOGNOTICE)
+    def Rate(self, mode):
+        pos  = self.playlist.getposition()
+        item = self.playlist[pos]
+        tokn = item.getProperty("%s.token" % _id)
+        song = self.songs.get(tokn)
 
-        song['rating'] = song['rated']
+        if not song:
+            return
+        elif (mode == 'branch'):
+            self.Branch(song)
+            return
+        elif (mode == 'seed'):
+            self.Seed(song)
+        elif (mode == 'up'):
+            self.pithos.add_feedback(song['token'], True)
+            self.Save(song)
+        elif (mode == 'tired'):
+            self.player.playnext()
+            self.pithos.set_tired(song['token'])
+        elif (mode == 'down'):
+            self.player.playnext()
+            self.pithos.add_feedback(song['token'], False)
+        elif (mode == 'clear'):
+            feedback = self.pithos.add_feedback(song['token'], True)
+            self.pithos.del_feedback(song['station'], feedback)
+        else: return
+
+        Log("%-8s" % mode.title(), song, xbmc.LOGNOTICE)
+
+
+    def Rated(self, song, rating):
+        Log("Rate %1s>%1s" % (song['rating'], rating), song, xbmc.LOGNOTICE)
+
         expert = (Val('rating') == '1')
+        song['rating'] = rating
+        song['rated'] = rating
 
-        if (song['rated'] == '5'):
+        if (rating == '5'):
             if (expert):
                 self.Branch(song)
             else:
                 self.pithos.add_feedback(song['token'], True)
             self.Save(song)
 
-        elif (song['rated'] == '4'):
+        elif (rating == '4'):
             if (expert):
                 self.Seed(song)
             else:
                 self.pithos.add_feedback(song['token'], True)
             self.Save(song)
 
-        elif (song['rated'] == '3'):
+        elif (rating == '3'):
             self.pithos.add_feedback(song['token'], True)
             self.Save(song)
 
-        elif (song['rated'] == '2'):
+        elif (rating == '2'):
             if (expert):
                 self.pithos.set_tired(song['token'])
             else:
                 self.pithos.add_feedback(song['token'], False)
 
-        elif (song['rated'] == '1'):
+        elif (rating == '1'):
             self.pithos.add_feedback(song['token'], False)
 
-        elif (song['rated'] == ''):
+        elif (rating == ''):
             feedback = self.pithos.add_feedback(song['token'], True)
             self.pithos.del_feedback(song['station'], feedback)
 
@@ -484,8 +515,7 @@ class Pandoki(object):
                 songs[tk] = song
 
                 if (rate) and (song.get('rating', rt) != rt):
-                    song['rated'] = rt
-                    self.Rate(song)
+                    self.Rated(song, rt)
                 elif not song.get('rating'):
                     song['rating'] = rt
 
@@ -679,7 +709,12 @@ class Pandoki(object):
         elif act == 'delete':
             self.Delete(Prop('delete'))
 
-        elif act == 'play':
+        elif act == 'rate':
+            self.Rate(Prop('rate'))
+
+        act = Prop('action')
+
+        if   act == 'play':
             self.Play(Prop('play'))
 
         elif act == 'dir':
