@@ -174,11 +174,17 @@ class Pandoki(object):
             li.setThumbnailImage(art)
 
             title = asciidamnit.asciiDammit(s['title'])
-            li.addContextMenuItems([('Rename Station', "RunPlugin(plugin://%s/?%s)" % (_id, urllib.urlencode({ 'rename' : s['token'], 'title' : title }))),
-                                    ('Delete Station', "RunPlugin(plugin://%s/?%s)" % (_id, urllib.urlencode({ 'delete' : s['token'], 'title' : title }))),
-                                    ('Select Thumb',   "RunPlugin(plugin://%s/?%s)" % (_id, urllib.urlencode({  'thumb' : s['token'], 'title' : title }))), ])
+            rurl = "RunPlugin(plugin://%s/?%s)" % (_id, urllib.urlencode({ 'rename' : s['token'], 'title' : title }))
+            durl = "RunPlugin(plugin://%s/?%s)" % (_id, urllib.urlencode({ 'delete' : s['token'], 'title' : title }))
+            surl = "RunPlugin(plugin://%s/?%s)" % (_id, urllib.urlencode({  'thumb' : s['token'], 'title' : title }))
 
-            xbmcplugin.addDirectoryItem(int(handle), "%s?%s" % (_base, urllib.urlencode({ 'play' : s['token'] })), li)
+            li.addContextMenuItems([('Rename Station', rurl),
+                                    ('Delete Station', durl),
+                                    ('Select Thumb',   surl), ])
+
+            burl = "%s?%s" % (_base, urllib.urlencode({ 'play' : s['token'] }))
+            xbmcplugin.addDirectoryItem(int(handle), burl, li)
+#            Log(burl)
 
         xbmcplugin.endOfDirectory(int(handle), cacheToDisc = False)
         Log("Dir   OK %4s" % handle)
@@ -301,12 +307,13 @@ class Pandoki(object):
         xbmcvfs.delete(tmp)
         song['saved'] = True
 
-        if (not xbmcvfs.exists(song['path_alb'])) or (not xbmcvfs.exists(song['path_art'])):
+        if (song.get('art', False)) and ((not xbmcvfs.exists(song['path_alb'])) or (not xbmcvfs.exists(song['path_art']))):
             try:
                 strm = self.Proxy().open(song['art'])
                 data = strm.read()
             except ValueError:
                 Log("Save ART      '%s'" % song['art'])
+#                xbmc.log(str(song))
                 return
 
             for jpg in [ song['path_alb'], song['path_art'] ]:
@@ -346,7 +353,7 @@ class Pandoki(object):
     def Cache(self, song):
         try:
             strm = self.Proxy().open(song['url'], timeout = 10)
-        except HTTPError:
+        except: # HTTPError:
             self.wait['auth'] = 0
             if not self.Auth():
                 Log("Cache ER", song)
@@ -389,8 +396,16 @@ class Pandoki(object):
 
 
     def Fetch(self, song):
-        if xbmcvfs.exists(song['path_lib']):	# Found in Library
-            Log('Song LIB', song)
+        if xbmcvfs.exists(song['path_mp3']):	# Found MP3 in Library
+            Log('Song MP3', song)
+            song['path_lib'] = song['path_mp3']
+            song['path'] = song['path_lib']
+            song['save'] = True
+            self.Queue(song)
+
+        elif xbmcvfs.exists(song['path_m4a']):	# Found M4A in Library
+            Log('Song M4A', song)
+            song['path_lib'] = song['path_m4a']
             song['path'] = song['path_lib']
             song['save'] = True
             self.Queue(song)
@@ -537,6 +552,8 @@ class Pandoki(object):
 
         s['path_cch'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s - %s.%s"            % (Val('cache'), s['artist'], s['title'],  s['encoding'])))
         s['path_dir'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s"            % (lib,          s['artist'], s['artist'], s['album'])))
+        s['path_m4a'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/%s - %s.%s" % (lib,          s['artist'], s['artist'], s['album'], s['artist'], s['title'], 'm4a'))) #s['encoding'])))
+        s['path_mp3'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/%s - %s.%s" % (lib,          s['artist'], s['artist'], s['album'], s['artist'], s['title'], 'mp3'))) #s['encoding'])))
         s['path_lib'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/%s - %s.%s" % (lib,          s['artist'], s['artist'], s['album'], s['artist'], s['title'], s['encoding'])))
         s['path_alb'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/folder.jpg" % (lib,          s['artist'], s['artist'], s['album'])))
         s['path_art'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/folder.jpg"         % (lib,          s['artist']))) #.decode("utf-8")
@@ -634,6 +651,7 @@ class Pandoki(object):
 
 
     def Play(self, token):
+        Log('Play  ??', self.station, xbmc.LOGNOTICE)
         last = self.station
 
         if self.Tune(token):
@@ -660,7 +678,9 @@ class Pandoki(object):
 
 
     def Create(self, token):
+        Log('%s' % token)
         self.Stations()
+#        self.Auth()
         station = self.pithos.create_station(token)
 
         Log('Create  ', station)
@@ -699,7 +719,7 @@ class Pandoki(object):
 
         elif act == 'search':
             self.Search(Prop('handle'), Prop('search'))
-
+ 
         elif act == 'create':
             self.Create(Prop('create'))
 
