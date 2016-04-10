@@ -76,13 +76,13 @@ class Pandoki(object):
 
         if proxy == '1':	# None
             hand = urllib2.ProxyHandler({})
-            return mypithos.Pithos.build_opener(hand)
+            return urllib2.build_opener(hand)
 
         elif proxy == '0':	# Global
             if (Val('sni') == 'true') and _urllib3:
                 return urllib3.PoolManager()
             else:
-                return mypithos.Pithos.build_opener()
+                return urllib2.build_opener()
 
         elif proxy == '2':	# Custom
             http = "http://%s:%s@%s:%s" % (Val('proxy_user'), Val('proxy_pass'), Val('proxy_host'), Val('proxy_port'))
@@ -91,7 +91,7 @@ class Pandoki(object):
                 return urllib3.ProxyManager(http)
             else:
                 hand = urllib2.ProxyHandler({ 'http' : http, 'https' : http })
-                return mypithos.Pithos.build_opener(hand)
+                return urllib2.build_opener(hand)
 
 
     def Auth(self):
