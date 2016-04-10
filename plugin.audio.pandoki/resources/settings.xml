@@ -25,7 +25,8 @@
 		<setting id="quality"    type="enum"   label="Audio Quality"    default="2"     values="Low|Medium|High"/>
 		<setting id="rating"     type="enum"   label="Rating Mode"      default="0"     values="Basic|Expert"/>
 		<setting id="mode"       type="enum"   label="Track Handling"   default="0"     values="Stream Only|Save All Tracks|Save Liked Tracks|Cache Only"/>
-		<setting id="skip"       type="bool"   label="Skip Ads"         default="false" visible="!eq(-1,0)"/>
+		<setting id="m3u"        type="bool"   label="Save Playlist"    default="false" visible="!eq(-1,0)"/>
+		<setting id="skip"       type="bool"   label="Skip Ads"         default="false" visible="!eq(-2,0)"/>
 	</category>
 	<category                                      label="Advanced">
 		<setting id="history"    type="slider" label="Playlist History" default="14"    range="0,1,50"     option="int"/>

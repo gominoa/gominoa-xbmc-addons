@@ -258,6 +258,31 @@ class Pandoki(object):
 #                break
 
 
+    def M3U(self, song, delete = False):
+        if (Val('m3u') != 'true'): return
+        if (not song.get('saved', False)): return
+
+        m3u = xbmcvfs.File(song['path_m3u'], 'r')
+        lines = m3u.read().splitlines()
+        m3u.close()
+
+        if (song['path_rel'] in lines):
+            if (not delete): return
+            
+            lines.remove(song['path_rel'])
+            
+        else:
+            if (not xbmcvfs.exists(song['path_lib'])): return
+
+            lines.append(song['path_rel'])
+
+        lines = '\n'.join(lines)
+
+        m3u = xbmcvfs.File(song['path_m3u'], 'w')
+        m3u.write(lines)
+        m3u.close()
+
+
     def Tag(self, song):
         try:
             res = musicbrainzngs.search_recordings(limit = 1, query = song['title'], artist = song['artist'], release = song['album'], qdur = str(song['duration'] * 1000))['recording-list'][0]
@@ -305,7 +330,9 @@ class Pandoki(object):
         xbmcvfs.mkdirs(song['path_dir'])
         xbmcvfs.copy(tmp, song['path_lib'])
         xbmcvfs.delete(tmp)
+
         song['saved'] = True
+        self.M3U(song)
 
         if (song.get('art', False)) and ((not xbmcvfs.exists(song['path_alb'])) or (not xbmcvfs.exists(song['path_art']))):
             try:
@@ -400,30 +427,30 @@ class Pandoki(object):
             Log('Song MP3', song)
             song['path_lib'] = song['path_mp3']
             song['path'] = song['path_lib']
-            song['save'] = True
-            self.Queue(song)
+            song['saved'] = True
 
         elif xbmcvfs.exists(song['path_m4a']):	# Found M4A in Library
             Log('Song M4A', song)
             song['path_lib'] = song['path_m4a']
             song['path'] = song['path_lib']
-            song['save'] = True
-            self.Queue(song)
+            song['saved'] = True
 
         elif xbmcvfs.exists(song['path_cch']):	# Found in Cache
             Log('Song CCH', song)
             song['path'] = song['path_cch']
-            self.Queue(song)
 
         elif Val('mode') == '0':		# Stream Only
             Log('Song PAN', song)
             song['path'] = song['url']
-            self.Queue(song)
 
         else:					# Cache / Save
             Log('Song GET', song)
             song['path'] = song['path_cch']
             self.Cache(song)
+            return
+
+        self.Queue(song)
+
 
 
     def Seed(self, song):
@@ -444,6 +471,11 @@ class Pandoki(object):
         Prop('action', 'play')
 
         Log('Branch  ', song)
+
+
+#    def Del(self, song):
+#        self.M3U(song, True)
+#        xbmcvfs.delete(song['path_lib'])
 
 
     def Rate(self, mode):
@@ -473,6 +505,7 @@ class Pandoki(object):
             self.pithos.add_feedback(song['token'], False)
     
             song['voted'] = 'down'
+            self.M3U(song, True)
 
         elif (mode == 'clear'):
             feedback = self.pithos.add_feedback(song['token'], True)
@@ -570,6 +603,10 @@ class Pandoki(object):
         s['path_alb'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/%s - %s/folder.jpg" % (lib,          s['artist'], s['artist'], s['album'])))
         s['path_art'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s/folder.jpg"         % (lib,          s['artist']))) #.decode("utf-8")
 
+        title = ''.join(c for c in self.station['title'] if c not in badc)
+        s['path_m3u'] = xbmc.translatePath(asciidamnit.asciiDammit("%s/%s.m3u"                % (lib, title)))
+        s['path_rel'] = xbmc.translatePath(asciidamnit.asciiDammit(   "%s/%s - %s/%s - %s.%s" % (     s['artist'], s['artist'], s['album'], s['artist'], s['title'], s['encoding'])))
+
 
     def Fill(self):
         token = self.station['token']
@@ -642,6 +679,7 @@ class Pandoki(object):
         while len(self.queue) > 0:
             song = self.queue.popleft()
             self.Add(song)
+            self.M3U(song)
 
         if self.once:
             self.player.play(self.playlist)
