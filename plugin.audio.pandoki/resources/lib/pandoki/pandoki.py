@@ -205,7 +205,7 @@ class Pandoki(object):
 
 
     def Info(self, s):
-        info = { 'artist' : s['artist'], 'album' : s['album'], 'title' : s['title'] } #, 'rating' : s['rating'] }
+        info = { 'artist' : s['artist'], 'album' : s['album'], 'title' : s['title'], 'rating' : s['rating'] }
 
         if s.get('duration'):
             info['duration'] = s['duration']
@@ -238,7 +238,7 @@ class Pandoki(object):
         if self.mesg == msg: return
         else: self.mesg = msg
 
-        song = { 'token' : 'mesg', 'title' : msg, 'path' : self.silent, 'artist' : Val('name'),  'album' : Val('description'), 'art' : Val('icon') } #, 'rating' : '' }
+        song = { 'token' : 'mesg', 'title' : msg, 'path' : self.silent, 'artist' : Val('name'),  'album' : Val('description'), 'art' : Val('icon'), 'rating' : '' }
         self.Queue(song)
 
 #        while True:		# Remove old messages
@@ -462,15 +462,24 @@ class Pandoki(object):
         elif (mode == 'up'):
             self.pithos.add_feedback(song['token'], True)
             self.Save(song)
+
+            song['voted'] = 'up'
+
         elif (mode == 'tired'):
             self.player.playnext()
             self.pithos.set_tired(song['token'])
         elif (mode == 'down'):
             self.player.playnext()
             self.pithos.add_feedback(song['token'], False)
+    
+            song['voted'] = 'down'
+
         elif (mode == 'clear'):
             feedback = self.pithos.add_feedback(song['token'], True)
             self.pithos.del_feedback(song['station'], feedback)
+
+            song['voted'] = ''
+
         else: return
 
         Log("%-8s" % mode.title(), song, xbmc.LOGNOTICE)
@@ -506,16 +515,18 @@ class Pandoki(object):
                 self.pithos.set_tired(song['token'])
             else:
                 self.pithos.add_feedback(song['token'], False)
+            self.player.playnext()
 
         elif (rating == '1'):
             self.pithos.add_feedback(song['token'], False)
+            self.player.playnext()
 
         elif (rating == ''):
             feedback = self.pithos.add_feedback(song['token'], True)
             self.pithos.del_feedback(song['station'], feedback)
 
 
-    def Scan(self, rate = True):
+    def Scan(self, rate = False):
         if ((rate) and (time.time() < self.wait['scan'])) or (xbmcgui.getCurrentWindowDialogId() == 10135): return
         self.wait['scan'] = time.time() + 15
 
@@ -523,6 +534,7 @@ class Pandoki(object):
         for pos in range(0, self.playlist.size()):
             tk = self.playlist[pos].getProperty("%s.token" % _id)
             rt = xbmc.getInfoLabel("MusicPlayer.Position(%d).Rating" % pos)
+            if (rt == ''): rt = '0'
 
             if tk in self.songs:
                 song = self.songs[tk]
@@ -603,8 +615,12 @@ class Pandoki(object):
         pos  = self.playlist.getposition()
         item = self.playlist[pos]
         tokn = item.getProperty("%s.token" % _id)
-        skip = xbmc.getInfoLabel("MusicPlayer.Position(%d).Rating" % pos)
-        skip = ((tokn == 'mesg') or (skip == '1') or (skip == '2')) and (xbmcgui.getCurrentWindowDialogId() != 10135)
+
+        if tokn in self.songs:
+            Prop('voted', self.songs[tokn].get('voted', ''))
+
+#        skip = xbmc.getInfoLabel("MusicPlayer.Position(%d).Rating" % pos)
+#        skip = ((tokn == 'mesg') or (skip == '1') or (skip == '2')) and (xbmcgui.getCurrentWindowDialogId() != 10135)
 
         if (len - pos) < 2:
             self.Next()
@@ -612,7 +628,8 @@ class Pandoki(object):
 #        elif ((len - pos) < 2) and (tokn != 'mesg'):
 #            self.Msg("Queueing %s" % self.station['title'])
 
-        elif skip:
+#        elif skip:
+        elif (tokn == 'mesg'):
             self.player.playnext()
 
 
@@ -671,7 +688,7 @@ class Pandoki(object):
                     xbmc.executeJSONRPC('{"jsonrpc":"2.0", "id":1, "method":"Playlist.Remove", "params":{"playlistid":' + str(xbmc.PLAYLIST_MUSIC) + ', "position":' + str(len) + '}}')
                 else: break
 
-            self.Msg("Queuing %s" % self.station['title'])
+            self.Msg("%s" % self.station['title'])
             Log('Play  OK', self.station, xbmc.LOGNOTICE)
 
         xbmc.executebuiltin('ActivateWindow(10500)')

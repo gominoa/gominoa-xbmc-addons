@@ -23,7 +23,9 @@ import logging
 import time
 import urllib
 import urllib2
+#import ssl
 
+#ssl._create_default_https_context = ssl._create_unverified_context
 
 # This is an implementation of the Pandora JSON API using Android partner
 # credentials.
@@ -230,8 +232,8 @@ class Pithos(object):
         return self.stations
 
 
-    def get_playlist(self, token, quality = 2):
-        qual = [ 'lowQuality', 'mediumQuality', 'highQuality' ]
+    def get_playlist(self, token, q = 2):
+        quality = [ 'lowQuality', 'mediumQuality', 'highQuality' ]
         self.playlist = []
 
         for s in self.json_call('station.getPlaylist', { 'stationToken': token, 'includeTrackLength' : True }, https = True)['items']:
@@ -239,17 +241,20 @@ class Pithos(object):
 
             song = { 'id' : s['songIdentity'], 'token' : s['trackToken'], 'station' : s['stationId'], 'duration' : s.get('trackLength'),
                  'artist' : s['artistName'],   'album' : s['albumName'],    'title' : s['songName'],       'art' : s['albumArtUrl'],
-                 'url' : None, 'bitrate' : 64, 'encoding' : None } #, 'rating' : '' }
+                 'url' : None, 'bitrate' : 64, 'encoding' : None, 'rating' : '0' }
 
-            while quality < 3:
-                if s['audioUrlMap'].get(qual[quality]):
-                    song['url']      =     s['audioUrlMap'][qual[quality]]['audioUrl']
-                    song['encoding'] =     s['audioUrlMap'][qual[quality]]['encoding']
-                    song['bitrate']  = int(s['audioUrlMap'][qual[quality]]['bitrate'])
+            while q < 3:
+                if s['audioUrlMap'].get(quality[q]):
+                    song['url']      =     s['audioUrlMap'][quality[q]]['audioUrl']
+                    song['encoding'] =     s['audioUrlMap'][quality[q]]['encoding']
+                    song['bitrate']  = int(s['audioUrlMap'][quality[q]]['bitrate'])
                     break
-                quality += 1
+                q += 1
 
-#            if s['songRating'] == 1: song['rating'] = '5'
+            if s['songRating'] != 0:
+                song['rating'] = '3'
+                song['voted'] = 'up'
+
             if song['encoding'] == 'aacplus': song['encoding'] = 'm4a'
 
             self.playlist.append(song)
