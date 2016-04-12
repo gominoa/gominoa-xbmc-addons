@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon
+  id="skin.pandoki"
+  version="0.0.1"
+  name="Pandoki Skin"
+  provider-name="me">
+  <requires>
+    <import addon="xbmc.gui" version="5.10.0"/>
+  </requires>
+  <extension
+    point="xbmc.gui.skin"
+    debugging="false"
+    effectslowdown="1.0">
+    <res width="1280" height="720" aspect="16:9" default="true" folder="720p" />
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_US">Confluence skin by Jezz_X. (Kodi's default skin)</summary>
+    <description lang="en_US">Confluence is the default skin for Kodi 9.11 and above. It is a combination of concepts from many popular skins, and attempts to embrace and integrate their good ideas into a skin that should be easy for first time Kodi users to understand and use.</description>
+    <disclaimer lang="en_US">Confluence is the default skin for Kodi, removing it may cause issues</disclaimer>
+    <platform>all</platform>
+  </extension>
+</addon>
