@@ -300,7 +300,7 @@ class Pandoki(object):
 
     def Save(self, song):
         if (song['title'] == 'Advertisement') or (song.get('saved')) or (not song.get('cached', False)): return
-        if (Val('mode') in ('0', '3')) or ((Val('mode') == '2') and (song.get('rated') not in ('3', '4', '5'))): return
+        if (Val('mode') in ('0', '3')) or ((Val('mode') == '2') and (song.get('voted') != 'up')): return
         if (not self.Tag(song)): return
 
         tmp = "%s.%s" % (song['path'], song['encoding'])
@@ -486,32 +486,36 @@ class Pandoki(object):
 
         if not song:
             return
+
         elif (mode == 'branch'):
             self.Branch(song)
             return
+
         elif (mode == 'seed'):
             self.Seed(song)
+
         elif (mode == 'up'):
+            song['voted'] = 'up'
+	    Prop('voted', 'up')
             self.pithos.add_feedback(song['token'], True)
             self.Save(song)
-
-            song['voted'] = 'up'
 
         elif (mode == 'tired'):
             self.player.playnext()
             self.pithos.set_tired(song['token'])
+
         elif (mode == 'down'):
+            song['voted'] = 'down'
+	    Prop('voted', 'down')
             self.player.playnext()
             self.pithos.add_feedback(song['token'], False)
-    
-            song['voted'] = 'down'
             self.M3U(song, True)
 
         elif (mode == 'clear'):
+            song['voted'] = ''
+	    Prop('voted', '')
             feedback = self.pithos.add_feedback(song['token'], True)
             self.pithos.del_feedback(song['station'], feedback)
-
-            song['voted'] = ''
 
         else: return
 
